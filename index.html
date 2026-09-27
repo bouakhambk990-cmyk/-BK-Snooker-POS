@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>ຈັດການສະຕັອກ — BK Snooker</title>
+<style>
+  :root{
+    --bg:#0a120e;
+    --bg-soft:#0e1a14;
+    --panel:#131f19;
+    --panel-2:#0d1712;
+    --panel-hover:#182620;
+    --line:#20362a;
+    --line-soft:#182a20;
+    --green:#2ee273;
+    --green-deep:#16b356;
+    --green-dim:#173c29;
+    --green-glow:rgba(46,226,115,0.35);
+    --amber:#ffc14d;
+    --amber-deep:#e0a020;
+    --red:#ff5c73;
+    --red-deep:#dc2626;
+    --text:#eef7f1;
+    --text-dim:#93ac9f;
+    --text-faint:#5f7a6a;
+    --radius:16px;
+    --radius-sm:10px;
+    --shadow-1:0 2px 8px rgba(0,0,0,0.28);
+    --shadow-2:0 8px 24px rgba(0,0,0,0.38);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  ::selection{ background:var(--green-dim); color:var(--text); }
+  ::-webkit-scrollbar{width:8px; height:8px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--line); border-radius:8px;}
+  body{
+    background:var(--bg-soft); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans Lao','Noto Sans Thai',sans-serif;
+    -webkit-font-smoothing:antialiased; min-height:100vh; -webkit-tap-highlight-color:transparent;
+    letter-spacing:.1px; padding:14px; padding-bottom:60px;
+  }
+  h2.section-title{font-size:16px; margin:0 0 12px; display:flex; align-items:center; gap:8px; color:var(--text);}
+  h2.section-title .bar{width:4px; height:16px; background:var(--green); border-radius:2px; display:inline-block;}
+
+  .topbar{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:16px; flex-wrap:wrap;}
+  .topbar h1{font-size:18px; margin:0; display:flex; align-items:center; gap:8px;}
+  .sync-pill{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-dim); background:var(--panel); border:1px solid var(--line); border-radius:999px; padding:5px 10px;}
+  .sync-dot{width:8px; height:8px; border-radius:50%; background:var(--green); box-shadow:0 0 6px var(--green-glow); flex-shrink:0;}
+  .sync-dot.offline{background:var(--text-faint); box-shadow:none;}
+  .sync-dot.syncing{background:var(--amber); animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:14px; box-shadow:var(--shadow-1); }
+
+  .btn{ border:none; border-radius:11px; padding:11px 16px; font-size:14px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px; justify-content:center; transition:.15s; font-family:inherit; }
+  .btn-primary{background:linear-gradient(180deg,#3eeb84,#16b356); color:#06210f; box-shadow:0 2px 0 #0d6b30, 0 4px 10px var(--green-glow);}
+  .btn-primary:active{transform:translateY(1px); box-shadow:0 1px 0 #0d6b30;}
+  .btn-danger{background:linear-gradient(180deg,#ff8080,#e0344a); color:#2a0707; box-shadow:0 2px 0 #8f1c2b;}
+  .btn-danger:active{transform:translateY(1px); box-shadow:0 1px 0 #8f1c2b;}
+  .btn-ghost{background:var(--panel-2); color:var(--text); border:1px solid var(--line);}
+  .btn-ghost:hover{ background:var(--panel-hover); border-color:var(--line-soft); }
+  .btn-block{width:100%;}
+  .btn-sm{padding:7px 11px; font-size:12px; border-radius:8px;}
+  .btn-row{display:flex; gap:8px; flex-wrap:wrap;}
+
+  input,select,textarea{ background:var(--panel-2); border:1px solid var(--line); color:var(--text); border-radius:10px; padding:10px 12px; font-size:14px; width:100%; font-family:inherit; transition:.15s; }
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--green-deep); outline-offset:1px; border-color:var(--green-deep);}
+  label{font-size:12px; color:var(--text-dim); display:block; margin-bottom:5px; font-weight:600;}
+  .field{margin-bottom:12px;}
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+
+  .overlay{ position:fixed; inset:0; background:rgba(2,8,5,0.78); z-index:100; display:none; align-items:flex-end; justify-content:center; backdrop-filter:blur(3px); }
+  .overlay.open{display:flex;}
+  @media (min-width:640px){ .overlay{align-items:center;} }
+  .modal{ background:var(--bg-soft); border:1px solid var(--line); border-radius:20px 20px 0 0; width:100%; max-width:420px; max-height:92vh; overflow-y:auto; padding:18px 18px 24px; animation:slideup .22s ease; box-shadow:0 -8px 32px rgba(0,0,0,0.45); }
+  @media (min-width:640px){ .modal{border-radius:18px; max-height:88vh; box-shadow:var(--shadow-2);} }
+  @keyframes slideup{from{transform:translateY(30px); opacity:0;} to{transform:none; opacity:1;}}
+  .modal-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--line-soft);}
+  .modal-head h3{margin:0; font-size:16px; font-weight:800;}
+  .close-x{background:var(--panel-2); border:1px solid var(--line); color:var(--text-dim); font-size:18px; cursor:pointer; line-height:1; padding:6px 10px; border-radius:9px; transition:.15s;}
+  .close-x:hover{ background:var(--panel-hover); color:var(--text); }
+
+  .empty-state{text-align:center; padding:40px 16px; color:var(--text-faint);}
+  .empty-state .ic{font-size:36px; margin-bottom:10px; opacity:.5;}
+
+  .stock-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; margin-bottom:14px;}
+  .stock-card{background:var(--panel); border:1px solid var(--line); border-radius:13px; padding:14px; position:relative; box-shadow:var(--shadow-1); transition:.15s;}
+  .stock-card:hover{ border-color:var(--line-soft); }
+  .stock-card.low{border-color:#8a2e2e; background:linear-gradient(160deg,#1f1312,#170d0c);}
+  .stock-card .s-name{font-size:14px; font-weight:700; margin-bottom:6px;}
+  .stock-card .s-qty{font-size:28px; font-weight:800; font-variant-numeric:tabular-nums; color:var(--green);}
+  .stock-card.low .s-qty{color:#fb7185;}
+  .stock-card .s-unit{font-size:11px; color:var(--text-dim); margin-left:4px;}
+  .stock-card .s-min{font-size:11px; color:var(--text-faint); margin-top:2px;}
+  .stock-card .s-actions{display:flex; gap:6px; margin-top:10px;}
+  .stock-badge-low{display:inline-block; background:#3a1414; color:#fb7185; font-size:10px; font-weight:700; border-radius:999px; padding:2px 7px; margin-left:6px; letter-spacing:.3px;}
+  .stock-log{font-size:12px; color:var(--text-dim); margin-top:10px; max-height:200px; overflow-y:auto;}
+  .stock-log-row{display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--line);}
+  .stock-log-row:last-child{border-bottom:none;}
+  .stock-log-row .sl-plus{color:var(--green);}
+  .stock-log-row .sl-minus{color:#fb7185;}
+
+  .toast{ position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:#142019; border:1px solid var(--green-deep); color:#bbf7d0; padding:11px 18px; border-radius:10px; font-size:13px; z-index:200; box-shadow:0 6px 20px rgba(0,0,0,0.4); display:none; max-width:90vw; text-align:center; }
+  .toast.show{display:block; animation:toastin .25s ease;}
+  @keyframes toastin{from{opacity:0; transform:translate(-50%,8px);} to{opacity:1; transform:translate(-50%,0);}}
+
+  .tabbar{display:flex; gap:8px; margin-bottom:14px; overflow-x:auto; padding-bottom:2px;}
+  .tab-btn{flex-shrink:0; background:var(--panel); border:1px solid var(--line); color:var(--text-dim); font-size:13px; font-weight:700; padding:9px 16px; border-radius:11px; cursor:pointer; font-family:inherit; transition:.15s;}
+  .tab-btn.active{background:linear-gradient(180deg,#3eeb84,#16b356); color:#06210f; border-color:transparent;}
+
+  .qty-step{display:inline-flex; align-items:center; gap:6px;}
+  .qty-step button{width:26px; height:26px; border-radius:8px;}
+
+  #printArea{display:none;}
+  @media print{
+    body *{visibility:hidden;}
+    #printArea, #printArea *{visibility:visible;}
+    #printArea{display:block; position:absolute; top:0; left:0; width:100%; padding:0; background:#fff; color:#000;}
+  }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <h1>🏪 BK Snooker</h1>
+    <div class="sync-pill">
+      <span class="sync-dot" id="syncDot"></span>
+      <span id="syncLabel">ກຳລັງໂຫຼດ...</span>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <button class="tab-btn active" id="tabBtnSale" onclick="App.switchTab('sale')">🛒 ຂາຍ</button>
+    <button class="tab-btn" id="tabBtnStock" onclick="App.switchTab('stock')">📦 ສະຕັອກ</button>
+    <button class="tab-btn" id="tabBtnReport" onclick="App.switchTab('report')">📊 ລາຍງານຍອດຂາຍ</button>
+  </div>
+
+  <!-- ===================== VIEW: STOCK ===================== -->
+  <div id="viewStock" style="display:none;">
+
+  <div class="card" style="margin-bottom:12px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+      <span style="font-size:13px; color:var(--text-dim);">ສີນຄ້າທີ່ໃກ້ໝົດ (ຕ່ຳກວ່າ stock ຂັ້ນຕ່ຳ) ຈະສະແດງເປັນສີແດງ — ໜ້ານີ້ sync ກັບ POS ຫຼັກອັດຕະໂນມັດ</span>
+      <div class="btn-row">
+        <button class="btn btn-primary btn-sm" onclick="App.openAddStockItemModal()">+ ເພີ່ມສີນຄ້າ</button>
+        <button class="btn btn-ghost btn-sm" onclick="App.exportStockCsv()">📊 Export CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px;">
+    <div class="field" style="margin-bottom:10px;">
+      <div style="display:flex; gap:8px;">
+        <input id="stockSearch" type="text" placeholder="🔍 ຄົ້ນຫາຊື່ສີນຄ້າ ຫຼື Barcode/SKU..." oninput="App.applyStockFilters()" style="flex:1;">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="App.openBarcodeScanner('stockSearch')">📷</button>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-bottom:10px;">
+      <div class="field" style="margin-bottom:0;">
+        <select id="stockCategoryFilter" onchange="App.applyStockFilters()">
+          <option value="">ທຸກໝວດໝູ່</option>
+          <option value="ເຄື່ອງດື່ມ">🥤 ເຄື່ອງດື່ມ</option>
+          <option value="ອາຫານ">🍜 ອາຫານ</option>
+          <option value="ເຄື່ອງໃຊ້/ອຸປະກອນ">🧰 ເຄື່ອງໃຊ້/ອຸປະກອນ</option>
+          <option value="ອື່ນໆ">📦 ອື່ນໆ</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <select id="stockQuickFilter" onchange="App.applyStockFilters()">
+          <option value="">ທຸກສະຖານະ</option>
+          <option value="low">⚠ ໃກ້ໝົດ (Low Stock)</option>
+          <option value="out">🚫 ໝົດ (Out of stock)</option>
+          <option value="expiring">⏰ ໃກ້ໝົດອາຍຸ (7 ມື້)</option>
+          <option value="expired">❌ ໝົດອາຍຸແລ້ວ</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost btn-sm" onclick="App.clearStockFilters()">✕ ລ້າງການຄົ້ນຫາ</button>
+    </div>
+  </div>
+
+  <div id="stockValuation" style="display:none;"></div>
+  <div id="expiryAlertBanner" style="display:none;"></div>
+  <div class="stock-grid" id="stockGrid"></div>
+  <div class="empty-state" id="stockFilterEmpty" style="display:none;">
+    <div class="ic">🔍</div>
+    ບໍ່ພົບສີນຄ້າທີ່ກົງກັບການຄົ້ນຫາ/ຄັດກອງ
+  </div>
+
+  <div class="empty-state" id="stockEmpty" style="display:none;">
+    <div class="ic">📦</div>
+    ຍັງບໍ່ມີສີນຄ້າໃນສະຕັອກ — ກົດ "+ ເພີ່ມສີນຄ້າ" ເພື່ອເລີ່ມຕົ້ນ
+  </div>
+
+  <div class="card" style="margin-top:14px;">
+    <h2 class="section-title" style="font-size:14px;"><span class="bar"></span>📋 ປະຫວັດການເຄື່ອນໄຫວ Stock</h2>
+    <div id="stockLogAll" class="stock-log"></div>
+  </div>
+
+  </div>
+  <!-- ===================== /VIEW: STOCK ===================== -->
+
+  <!-- ===================== VIEW: REPORT ===================== -->
+  <div id="viewReport" style="display:none;">
+    <div class="card" style="margin-bottom:12px;">
+      <div class="grid-2" style="margin-bottom:10px;">
+        <div class="field" style="margin-bottom:0;"><label>ຈາກວັນທີ</label><input id="reportFrom" type="date"></div>
+        <div class="field" style="margin-bottom:0;"><label>ຫາວັນທີ</label><input id="reportTo" type="date"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary btn-sm" onclick="App.renderSalesReport()">🔍 ຄົ້ນຫາ</button>
+        <button class="btn btn-ghost btn-sm" onclick="App.setReportToday()">ມື້ນີ້</button>
+        <button class="btn btn-ghost btn-sm" onclick="App.exportSalesCsv()">📊 Export CSV</button>
+      </div>
+    </div>
+
+    <div id="reportSummary" style="display:none;"></div>
+
+    <div class="card">
+      <h2 class="section-title" style="font-size:14px;"><span class="bar"></span>🧾 ລາຍການຂາຍ</h2>
+      <div id="reportList"></div>
+      <div class="empty-state" id="reportEmpty" style="display:none;">
+        <div class="ic">🧾</div>
+        ຍັງບໍ່ມີຍອດຂາຍໃນຊ່ວງທີ່ເລືອກ
+      </div>
+    </div>
+  </div>
+  <!-- ===================== /VIEW: REPORT ===================== -->
+
+  <!-- ===================== VIEW: SALE (main) ===================== -->
+  <div id="viewSale">
+    <div class="card" style="margin-bottom:12px;">
+      <div style="display:flex; gap:8px;">
+        <input id="posSearch" type="text" placeholder="🔍 ຄົ້ນຫາສີນຄ້າ ຫຼື Barcode..." oninput="App.renderPosItemList()" style="flex:1;">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="App.openBarcodeScanner('posSearch')">📷</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px;">
+      <div id="posItemList" style="max-height:280px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+        <div style="font-size:13px; color:var(--text-dim); font-weight:700;">🧾 ກະຕ່າສີນຄ້າ</div>
+        <button class="btn btn-ghost btn-sm" onclick="App.openHeldBills()">📥 ບິນຄ້າງ <span id="heldBillsCount"></span></button>
+      </div>
+      <div id="posCart" style="display:flex; flex-direction:column; gap:6px; margin-bottom:8px;"></div>
+      <div id="posCartEmpty" style="font-size:12px; color:var(--text-faint); text-align:center; padding:14px 0;">ຍັງບໍ່ໄດ້ເລືອກສີນຄ້າ</div>
+
+      <div style="border-top:1px solid var(--line-soft); margin-top:8px; padding-top:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:16px; font-weight:800; margin-bottom:10px;">
+          <span>ລວມທັງໝົດ</span>
+          <span id="posTotal" style="color:var(--green);">0 ກີບ</span>
+        </div>
+        <div class="grid-2">
+          <div class="field" style="margin-bottom:8px;">
+            <label>ຮັບເງິນ (ກີບ)</label>
+            <input id="posCash" type="number" min="0" placeholder="0" oninput="App.updateChangeCalc()">
+          </div>
+          <div class="field" style="margin-bottom:8px;">
+            <label>ທອນ</label>
+            <div id="posChange" style="padding:10px 12px; font-weight:800; font-size:15px;">0 ກີບ</div>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-bottom:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="App.setCashExact()">ຈ່າຍພໍດີ</button>
+          <button class="btn btn-ghost btn-sm" onclick="App.holdCurrentBill()">📥 ພັກບິນນີ້ໄວ້ກ່ອນ</button>
+        </div>
+        <button class="btn btn-primary btn-block" id="posConfirmBtn" onclick="App.confirmSale()">✅ ຢືນຢັນການຂາຍ</button>
+      </div>
+    </div>
+  </div>
+  <!-- ===================== /VIEW: SALE ===================== -->
+
+  <!-- ===================== ADD/EDIT STOCK ITEM MODAL ===================== -->
+  <div class="overlay" id="stockItemModal">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-head">
+        <h3 id="stockItemModalTitle">ເພີ່ມສີນຄ້າ</h3>
+        <button class="close-x" onclick="App.closeModal('stockItemModal')">✕</button>
+      </div>
+      <input type="hidden" id="stockItemEditIdx" value="">
+      <div class="field"><label>ຊື່ສີນຄ້າ</label><input id="siName" placeholder="ເຊັ່ນ Beer, Water, ກ້ອນໃສ"></div>
+      <div class="field"><label>Barcode / SKU (ບໍ່ບັງຄັບ)</label>
+        <div style="display:flex; gap:8px;">
+          <input id="siBarcode" placeholder="ເຊັ່ນ 8850001234567" style="flex:1;">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="App.openBarcodeScanner('siBarcode')">📷</button>
+        </div>
+      </div>
+      <div class="field"><label>ໝວດໝູ່</label>
+        <select id="siCategory">
+          <option value="ເຄື່ອງດື່ມ">🥤 ເຄື່ອງດື່ມ</option>
+          <option value="ອາຫານ">🍜 ອາຫານ</option>
+          <option value="ເຄື່ອງໃຊ້/ອຸປະກອນ">🧰 ເຄື່ອງໃຊ້/ອຸປະກອນ</option>
+          <option value="ອື່ນໆ">📦 ອື່ນໆ</option>
+        </select>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>ຈຳນວນເລີ່ມຕົ້ນ</label><input id="siQty" type="number" min="0" value="0"></div>
+        <div class="field"><label>ໜ່ວຍ</label><input id="siUnit" placeholder="ຂວດ, ກ້ອນ, ອັນ"></div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>💰 ຕົ້ນທຶນ / ໜ່ວຍ (ກີບ)</label>
+          <input id="siCostPrice" type="number" min="0" value="0" placeholder="ລາຄາຊື້ເຂົ້າ" oninput="App._updateMarginPreview()">
+        </div>
+        <div class="field">
+          <label>💵 ລາຄາຂາຍ / ໜ່ວຍ (ກີບ)</label>
+          <input id="siSellPrice" type="number" min="0" value="0" placeholder="ລາຄາຂາຍ" oninput="App._updateMarginPreview()">
+        </div>
+      </div>
+      <div id="siMarginPreview" style="display:none;background:var(--panel-2);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:13px;"></div>
+      <div class="field"><label>Stock ຂັ້ນຕ່ຳ (ແຈ້ງເຕືອນ)</label><input id="siMin" type="number" min="0" value="5"></div>
+      <div class="field"><label>ວັນໝົດອາຍຸ (ບໍ່ບັງຄັບ)</label><input id="siExpiry" type="date"></div>
+      <div class="field"><label>ເຊື່ອມກັບເມນູ (ຕັດ Stock ອັດຕະໂນມັດ)</label>
+        <select id="siLinkedMenu">
+          <option value="">— ບໍ່ເຊື່ອມ —</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="App.saveStockItem()">ບັນທຶກ</button>
+    </div>
+  </div>
+
+  <!-- ===================== ADJUST STOCK MODAL ===================== -->
+  <div class="overlay" id="stockAdjModal">
+    <div class="modal" style="max-width:380px;">
+      <div class="modal-head">
+        <h3 id="stockAdjTitle">ປັບ Stock</h3>
+        <button class="close-x" onclick="App.closeModal('stockAdjModal')">✕</button>
+      </div>
+      <input type="hidden" id="stockAdjIdx" value="">
+      <p style="font-size:13px; color:var(--text-dim); margin:0 0 14px;" id="stockAdjCurrent"></p>
+      <div class="field"><label>ປະເພດ</label>
+        <select id="stockAdjType">
+          <option value="add">➕ ຮັບສີນຄ້າເຂົ້າ (Restock)</option>
+          <option value="remove">➖ ຕັດອອກ (Manual)</option>
+          <option value="set">🔄 ຕັ້ງຄ່າໃໝ່ (Set)</option>
+        </select>
+      </div>
+      <div class="field"><label>ຈຳນວນ</label><input id="stockAdjQty" type="number" min="1" value="1"></div>
+      <div class="field"><label>ໝາຍເຫດ</label><input id="stockAdjNote" placeholder="ເຊັ່ນ ຮັບສີນຄ້າໃໝ່, ສີນຄ້າໝົດອາຍຸ"></div>
+      <button class="btn btn-primary btn-block" onclick="App.confirmStockAdj()">ຢືນຢັນ</button>
+    </div>
+  </div>
+
+  <!-- ===================== HELD BILLS MODAL ===================== -->
+  <div class="overlay" id="heldBillsModal">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-head">
+        <h3>📥 ບິນຄ້າງ</h3>
+        <button class="close-x" onclick="App.closeModal('heldBillsModal')">✕</button>
+      </div>
+      <div id="heldBillsList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      <div class="empty-state" id="heldBillsEmpty" style="display:none;">
+        <div class="ic">📥</div>
+        ບໍ່ມີບິນຄ້າງ
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== RECEIPT MODAL ===================== -->
+  <div class="overlay" id="receiptModal">
+    <div class="modal" style="max-width:380px;">
+      <div class="modal-head">
+        <h3>🧾 ໃບບິນ</h3>
+        <button class="close-x" onclick="App.closeModal('receiptModal')">✕</button>
+      </div>
+      <div id="receiptContent" style="font-size:13px;"></div>
+      <div class="btn-row" style="margin-top:14px;">
+        <button class="btn btn-primary btn-block" onclick="App.printReceipt()">🖨️ ພິມໃບບິນ</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="printArea"></div>
+
+  <!-- ===================== BARCODE SCANNER MODAL ===================== -->
+  <div class="overlay" id="barcodeScanModal">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-head">
+        <h3>📷 ສະແກນ Barcode</h3>
+        <button class="close-x" onclick="App.closeBarcodeScanner()">✕</button>
+      </div>
+      <div id="scannerViewport" style="position:relative; width:100%; min-height:260px; background:#000; border-radius:10px; overflow:hidden;"></div>
+      <p style="font-size:12px; color:var(--text-dim); margin:12px 0 0; text-align:center;">ຈໍ່ກ້ອງໃສ່ Barcode ໃຫ້ຢູ່ໃນກອບ</p>
+      <p id="scannerError" style="font-size:12px; color:#fb7185; margin:8px 0 0; text-align:center; display:none;"></p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<!-- Firebase SDK — ໃຊ້ project ດຽວກັນກັບ POS ຫຼັກ ເພື່ອໃຫ້ຂໍ້ມູນ sync ກັນ -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+<!-- Barcode scanner library (camera-based 1D barcode scanning) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+
+<script>
+/* ================================================================
+   STOCK MANAGEMENT — STANDALONE PAGE
+   ================================================================
+   ໜ້ານີ້ເປີດໄດ້ດ້ວຍໂຕມັນເອງ ໂດຍບໍ່ຕ້ອງເປີດ index.html ກ່ອນ — ມີ:
+     - ການໂຫຼດ/ບັນທຶກ localStorage ດ້ວຍ key ດຽວກັນກັບ POS ຫຼັກ (bk_pos_v2)
+     - ການເຊື່ອມຕໍ່ Firebase ດ້ວຍຕົນເອງ (ບໍ່ອີງໃສ່ index.html ເລີຍ)
+     - Realtime sync ທັງສົ່ງແລະຮັບ — ແກ້ໄຂຢູ່ໜ້ານີ້ຈະຂຶ້ນທີ່ POS ຫຼັກ ແລະ ກັບກັນ
+   ================================================================ */
+(function(){
+
+const STORAGE_KEY = "bk_pos_v2"; // ຕ້ອງກົງກັບ STORAGE_KEY ໃນ index.html ເພື່ອໃຫ້ localStorage ຊີ້ໄປບ່ອນດຽວກັນ
+
+/* ---------------- STATE ---------------- */
+function loadFullState(){
+  let s = {};
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) s = JSON.parse(raw) || {};
+  }catch(e){ console.warn("localStorage load error:", e); s = {}; }
+  // ຮັບປະກັນ field ທີ່ໜ້ານີ້ຕ້ອງໃຊ້ ມີຄົບສະເໝີ (ບໍ່ແຕະຕ້ອງ field ອື່ນ ເຊັ່ນ tables/bills/members)
+  if(!Array.isArray(s.stockItems)) s.stockItems = [];
+  if(!Array.isArray(s.stockLog))   s.stockLog   = [];
+  if(!Array.isArray(s.menuItems))  s.menuItems  = [];
+  if(!Array.isArray(s.salesLog))   s.salesLog   = [];
+  if(!Array.isArray(s.heldBills))  s.heldBills  = [];
+  return s;
+}
+let state = loadFullState();
+
+function persistLocal(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){ console.warn("localStorage save error:", e); }
+}
+
+/* ---------------- SMALL HELPERS (ສະບັບຫຍໍ້ ສະເພາະທີ່ໜ້ານີ້ໃຊ້) ---------------- */
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function fmtKip(n){
+  n = Math.round(n||0);
+  return n.toLocaleString("lo-LA") + " ກີບ";
+}
+function fmtDateTime(d){
+  const pad2 = x=>x.toString().padStart(2,"0");
+  return `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+function escapeAttr(s){
+  return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function toast(msg, duration=3000){
+  const t = document.getElementById("toast");
+  if(!t) return;
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=> t.classList.remove("show"), duration);
+}
+// confirm ແບບງ່າຍ (native) — ພຽງພໍສຳລັບໜ້າເຄື່ອງມືດ່ຽວນີ້
+function openConfirm(title, msg, onConfirm){
+  if(window.confirm(`${title}\n\n${msg}`)) onConfirm();
+}
+
+/* ---------------- GLOBAL APP NAMESPACE ---------------- */
+const App = {};
+window.App = App;
+
+App.closeModal = function(id){
+  const el = document.getElementById(id);
+  if(el) el.classList.remove("open");
+};
+document.querySelectorAll(".overlay").forEach(ov=>{
+  ov.addEventListener("click", e=>{
+    if(e.target === ov){
+      if(ov.id === "barcodeScanModal") App.closeBarcodeScanner();
+      else ov.classList.remove("open");
+    }
+  });
+});
+
+function refreshActiveTab(){
+  renderStock();
+  if(document.getElementById("viewSale")?.style.display !== "none"){
+    App.renderPosItemList();
+    App.renderCart();
+  }
+  if(document.getElementById("viewReport")?.style.display !== "none"){
+    App.renderSalesReport();
+  }
+}
+
+App.switchTab = function(tab){
+  const views = {sale:"viewSale", stock:"viewStock", report:"viewReport"};
+  Object.entries(views).forEach(([key, id])=>{
+    const el = document.getElementById(id);
+    if(el) el.style.display = (key===tab) ? "block" : "none";
+  });
+  ["Sale","Stock","Report"].forEach(name=>{
+    const btn = document.getElementById("tabBtn"+name);
+    if(btn) btn.classList.toggle("active", name.toLowerCase()===tab);
+  });
+  if(tab==="sale"){ App.renderPosItemList(); App.renderCart(); }
+  else if(tab==="stock"){ renderStock(); }
+  else if(tab==="report"){ App.setReportToday(); }
+};
+
+/* ================================================================
+   STOCK CRUD + RENDER (ເອົາ logic ດຽວກັນກັບ stock.js ຂອງ POS ຫຼັກ)
+   ================================================================ */
+App._updateMarginPreview = function(){
+  const cost = parseInt(document.getElementById("siCostPrice")?.value)||0;
+  const sell = parseInt(document.getElementById("siSellPrice")?.value)||0;
+  const prev = document.getElementById("siMarginPreview");
+  if(!prev) return;
+  if(cost<=0 && sell<=0){ prev.style.display="none"; return; }
+  prev.style.display = "block";
+  if(sell<=0){ prev.innerHTML='<span style="color:var(--text-faint);">ໃສ່ລາຄາຂາຍເພື່ອຄຳນວນ margin</span>'; return; }
+  const profit = sell - cost;
+  const margin = cost>0 ? ((profit/sell)*100).toFixed(1) : "N/A";
+  const color  = +margin>=50?"var(--green)":+margin>=20?"var(--amber)":"#ef4444";
+  prev.innerHTML = `<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;">
+    <span>ຕົ້ນທຶນ: <b>${fmtKip(cost)}</b></span>
+    <span>ຂາຍ: <b>${fmtKip(sell)}</b></span>
+    <span>ກຳໄລ/ໜ່ວຍ: <b style="color:${color};">${fmtKip(profit)}</b></span>
+    <span style="color:${color};font-weight:700;">📈 margin ${margin}%</span>
+  </div>`;
+};
+
+let _stockFilters = {q:"", category:"", quick:""};
+
+App.applyStockFilters = function(){
+  _stockFilters.q        = (document.getElementById("stockSearch")?.value||"").trim().toLowerCase();
+  _stockFilters.category = document.getElementById("stockCategoryFilter")?.value||"";
+  _stockFilters.quick    = document.getElementById("stockQuickFilter")?.value||"";
+  renderStock();
+};
+
+App.clearStockFilters = function(){
+  const sSearch = document.getElementById("stockSearch");
+  const sCat    = document.getElementById("stockCategoryFilter");
+  const sQuick  = document.getElementById("stockQuickFilter");
+  if(sSearch) sSearch.value = "";
+  if(sCat) sCat.value = "";
+  if(sQuick) sQuick.value = "";
+  _stockFilters = {q:"", category:"", quick:""};
+  renderStock();
+};
+
+function daysUntilExpiry(s){
+  if(!s.expiry) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const exp = new Date(s.expiry + "T00:00:00");
+  return Math.round((exp - today) / 86400000);
+}
+
+function getFilteredStockItems(){
+  return state.stockItems
+    .map((s, idx)=>({s, idx}))
+    .filter(({s})=>{
+      if(_stockFilters.q){
+        const q = _stockFilters.q;
+        const nameMatch = s.name.toLowerCase().includes(q);
+        const codeMatch = (s.barcode||"").toLowerCase().includes(q);
+        if(!nameMatch && !codeMatch) return false;
+      }
+      if(_stockFilters.category && s.category !== _stockFilters.category) return false;
+      if(_stockFilters.quick === "low" && !(s.qty <= s.minQty && s.qty > 0)) return false;
+      if(_stockFilters.quick === "out" && s.qty > 0) return false;
+      if(_stockFilters.quick === "expiring"){
+        const d = daysUntilExpiry(s);
+        if(d === null || d < 0 || d > 7) return false;
+      }
+      if(_stockFilters.quick === "expired"){
+        const d = daysUntilExpiry(s);
+        if(d === null || d >= 0) return false;
+      }
+      return true;
+    });
+}
+
+function renderStock(){
+  if(!Array.isArray(state.stockItems)) state.stockItems = [];
+  if(!Array.isArray(state.stockLog))   state.stockLog   = [];
+  const grid   = document.getElementById("stockGrid");
+  const empty  = document.getElementById("stockEmpty");
+  const filterEmpty = document.getElementById("stockFilterEmpty");
+  const logAll = document.getElementById("stockLogAll");
+  if(!grid) return;
+
+  const totalCostVal = state.stockItems.reduce((s,x)=>s+(x.costPrice||0)*x.qty, 0);
+  const totalSellVal = state.stockItems.reduce((s,x)=>s+(x.sellPrice||0)*x.qty, 0);
+  const valuationEl  = document.getElementById("stockValuation");
+  if(valuationEl){
+    if(totalCostVal>0||totalSellVal>0){
+      const pot = totalSellVal - totalCostVal;
+      valuationEl.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+          <div style="background:var(--panel-2);border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:11px;color:var(--text-faint);">📦 ມູນຄ່າ Stock (ຕົ້ນທຶນ)</div>
+            <div style="font-size:14px;font-weight:700;color:var(--amber);margin-top:4px;">${fmtKip(totalCostVal)}</div>
+          </div>
+          <div style="background:var(--panel-2);border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:11px;color:var(--text-faint);">💵 ມູນຄ່າຂາຍ</div>
+            <div style="font-size:14px;font-weight:700;color:var(--green);margin-top:4px;">${fmtKip(totalSellVal)}</div>
+          </div>
+          <div style="background:var(--panel-2);border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:11px;color:var(--text-faint);">📈 ກຳໄລທ່າແຮງ</div>
+            <div style="font-size:14px;font-weight:700;color:${pot>=0?"var(--green)":"#ef4444"};margin-top:4px;">${fmtKip(pot)}</div>
+          </div>
+        </div>`;
+      valuationEl.style.display="block";
+    } else {
+      valuationEl.style.display="none";
+    }
+  }
+
+  const expiryBanner = document.getElementById("expiryAlertBanner");
+  if(expiryBanner){
+    const soonOrExpired = state.stockItems.filter(s=>{
+      const d = daysUntilExpiry(s);
+      return d !== null && d <= 7;
+    }).sort((a,b)=> daysUntilExpiry(a) - daysUntilExpiry(b));
+    if(soonOrExpired.length > 0){
+      expiryBanner.style.display = "block";
+      expiryBanner.innerHTML = `
+        <div class="card" style="border-color:#8a5a1a;background:linear-gradient(160deg,#1f1a12,#170f0c);margin-bottom:12px;">
+          <div style="font-size:13px;font-weight:700;color:var(--amber);margin-bottom:6px;">⏰ ສີນຄ້າໃກ້/ໝົດອາຍຸ (${soonOrExpired.length})</div>
+          <div style="font-size:12px;color:var(--text-dim);display:flex;flex-direction:column;gap:3px;">
+            ${soonOrExpired.slice(0,6).map(s=>{
+              const d = daysUntilExpiry(s);
+              const label = d<0 ? `ໝົດອາຍຸແລ້ວ ${Math.abs(d)} ມື້` : d===0 ? "ໝົດອາຍຸມື້ນີ້" : `ອີກ ${d} ມື້`;
+              return `<div>• ${escapeAttr(s.name)} — <span style="color:${d<0?'#fb7185':'var(--amber)'};">${label}</span></div>`;
+            }).join("")}
+            ${soonOrExpired.length>6?`<div style="color:var(--text-faint);">...ແລະ ອີກ ${soonOrExpired.length-6} ລາຍການ</div>`:""}
+          </div>
+        </div>`;
+    } else {
+      expiryBanner.style.display = "none";
+      expiryBanner.innerHTML = "";
+    }
+  }
+
+  const filtered = getFilteredStockItems();
+  const hasActiveFilter = !!(_stockFilters.q || _stockFilters.category || _stockFilters.quick);
+
+  if(state.stockItems.length === 0){
+    grid.innerHTML = "";
+    if(empty) empty.style.display = "block";
+    if(filterEmpty) filterEmpty.style.display = "none";
+  } else if(filtered.length === 0){
+    grid.innerHTML = "";
+    if(empty) empty.style.display = "none";
+    if(filterEmpty) filterEmpty.style.display = hasActiveFilter ? "block" : "none";
+  } else {
+    if(empty) empty.style.display = "none";
+    if(filterEmpty) filterEmpty.style.display = "none";
+    grid.innerHTML = filtered.map(({s, idx})=>{
+      const isLow  = s.qty <= s.minQty;
+      const expDays = daysUntilExpiry(s);
+      const isExpired = expDays !== null && expDays < 0;
+      const isExpiringSoon = expDays !== null && expDays >= 0 && expDays <= 7;
+      const cost   = s.costPrice||0;
+      const sell   = s.sellPrice||0;
+      const profit = sell - cost;
+      const margin = (cost>0&&sell>0) ? ((profit/sell)*100).toFixed(1) : null;
+      const mColor = margin===null?"var(--text-faint)":+margin>=50?"var(--green)":+margin>=20?"var(--amber)":"#ef4444";
+      const stkVal = cost>0 ? fmtKip(cost*s.qty) : null;
+      return `
+        <div class="stock-card ${(isLow||isExpired)?"low":""}">
+          <div class="s-name">
+            ${escapeAttr(s.name)}
+            ${isLow?'<span class="stock-badge-low">⚠ ໃກ້ໝົດ</span>':""}
+            ${isExpired?'<span class="stock-badge-low">❌ ໝົດອາຍຸ</span>':isExpiringSoon?`<span class="stock-badge-low" style="background:#3a2e14;color:var(--amber);">⏰ ${expDays}ມື້</span>`:""}
+          </div>
+          <div><span class="s-qty">${s.qty}</span><span class="s-unit">${escapeAttr(s.unit||"")}</span></div>
+          <div class="s-min">ຂັ້ນຕ່ຳ: ${s.minQty} ${escapeAttr(s.unit||"")}
+            ${s.linkedMenu?`· ເຊື່ອມ: <span style="color:var(--green)">${escapeAttr(s.linkedMenu)}</span>`:""}
+          </div>
+          ${s.category?`<div style="font-size:10px;color:var(--text-faint);margin-top:2px;">🏷 ${escapeAttr(s.category)}</div>`:""}
+          ${s.barcode?`<div style="font-size:10px;color:var(--text-faint);margin-top:1px;">🏷️ SKU: ${escapeAttr(s.barcode)}</div>`:""}
+          ${s.expiry?`<div style="font-size:10px;margin-top:1px;color:${isExpired?'#fb7185':isExpiringSoon?'var(--amber)':'var(--text-faint)'};">📆 ໝົດອາຍຸ: ${escapeAttr(s.expiry)}</div>`:""}
+          ${(cost>0||sell>0)?`
+          <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;margin-top:4px;padding:6px 0 2px;border-top:1px solid var(--line);">
+            ${cost>0?`<span style="color:var(--text-faint);">ຕົ້ນທຶນ: <b>${fmtKip(cost)}</b></span>`:""}
+            ${sell>0?`<span style="color:var(--text-faint);">ຂາຍ: <b>${fmtKip(sell)}</b></span>`:""}
+            ${margin!==null?`<span style="color:${mColor};font-weight:700;">📈 ${margin}%</span>`:""}
+            ${stkVal?`<span style="color:var(--amber);">ມູນຄ່າ: ${stkVal}</span>`:""}
+          </div>`:""}
+          <div class="s-actions">
+            <button class="btn btn-primary btn-sm" style="flex:1" onclick="App.openStockAdj(${idx})">ປັບ Stock</button>
+            <button class="btn btn-ghost btn-sm" onclick="App.openEditStockItem(${idx})">✏️</button>
+            <button class="btn btn-danger btn-sm" onclick="App.removeStockItem(${idx})">🗑</button>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  if(logAll){
+    const logs = (state.stockLog||[]).slice(0,60);
+    if(logs.length===0){
+      logAll.innerHTML='<span style="color:var(--text-faint);font-size:12px;">ຍັງບໍ່ມີປະຫວັດ</span>';
+    } else {
+      logAll.innerHTML = logs.map(l=>`
+        <div class="stock-log-row">
+          <span>
+            <span class="${l.change>0?"sl-plus":"sl-minus"}">${l.change>0?"+"+l.change:l.change}</span>
+            <span style="margin-left:6px;">${escapeAttr(l.itemName)}</span>
+            <span style="color:var(--text-faint);font-size:11px;margin-left:6px;">${escapeAttr(l.reason||"")}</span>
+          </span>
+          <span style="color:var(--text-faint);font-size:11px;white-space:nowrap;">${fmtDateTime(new Date(l.ts))}</span>
+        </div>`).join("");
+    }
+  }
+}
+
+function populateLinkedMenuSelect(selected){
+  const sel = document.getElementById("siLinkedMenu");
+  sel.innerHTML = '<option value="">— ບໍ່ເຊື່ອມ —</option>';
+  (state.menuItems||[]).forEach(m=>{
+    const opt = document.createElement("option");
+    opt.value = m.name; opt.textContent = m.name;
+    if(m.name === selected) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+App.saveStockItem = function(){
+  const name      = document.getElementById("siName").value.trim();
+  const barcode   = document.getElementById("siBarcode").value.trim();
+  const category  = document.getElementById("siCategory").value;
+  const qty       = Math.max(0, parseInt(document.getElementById("siQty").value)||0);
+  const unit      = document.getElementById("siUnit").value.trim();
+  const minQty    = Math.max(0, parseInt(document.getElementById("siMin").value)||0);
+  const expiry    = document.getElementById("siExpiry").value || "";
+  const linkedMenu= document.getElementById("siLinkedMenu").value;
+  const costPrice = Math.max(0, parseInt(document.getElementById("siCostPrice").value)||0);
+  const sellPrice = Math.max(0, parseInt(document.getElementById("siSellPrice").value)||0);
+  if(!name){ toast("ກະລຸນາໃສ່ຊື່ສີນຄ້າ"); return; }
+
+  const editIdx = document.getElementById("stockItemEditIdx").value;
+  if(editIdx !== ""){
+    const s = state.stockItems[parseInt(editIdx)];
+    const oldQty = s.qty;
+    s.name=name; s.barcode=barcode; s.category=category; s.qty=qty; s.unit=unit; s.minQty=minQty; s.expiry=expiry;
+    s.linkedMenu=linkedMenu; s.costPrice=costPrice; s.sellPrice=sellPrice;
+    if(qty !== oldQty){
+      state.stockLog.unshift({ts:Date.now(), itemId:s.id, itemName:name, change:qty-oldQty, reason:"ແກ້ໄຂຂໍ້ມູນ"});
+    }
+    toast("ແກ້ໄຂສີນຄ້າແລ້ວ");
+  } else {
+    const newItem = {id:uid(), name, barcode, category, qty, unit, minQty, expiry, linkedMenu, costPrice, sellPrice};
+    state.stockItems.push(newItem);
+    if(qty>0) state.stockLog.unshift({ts:Date.now(), itemId:newItem.id, itemName:name, change:qty, reason:"ສ້າງໃໝ່"});
+    toast("ເພີ່ມສີນຄ້າແລ້ວ");
+  }
+  saveState(); renderStock();
+  App.closeModal("stockItemModal");
+};
+
+App.removeStockItem = function(idx){
+  openConfirm("ລຶບສີນຄ້າ", `ຕ້ອງການລຶບ "${state.stockItems[idx].name}" ອອກຈາກ Stock ແທ້ບໍ?`, ()=>{
+    state.stockItems.splice(idx,1);
+    saveState();
+    renderStock();
+    toast("ລຶບສີນຄ້າແລ້ວ");
+  });
+};
+
+App.openAddStockItemModal = function(){
+  document.getElementById("stockItemModalTitle").textContent = "ເພີ່ມສີນຄ້າ";
+  document.getElementById("stockItemEditIdx").value = "";
+  document.getElementById("siName").value = "";
+  document.getElementById("siBarcode").value = "";
+  document.getElementById("siCategory").value = "ອື່ນໆ";
+  document.getElementById("siQty").value = "0";
+  document.getElementById("siUnit").value = "";
+  document.getElementById("siMin").value = "5";
+  document.getElementById("siExpiry").value = "";
+  document.getElementById("siCostPrice").value = "0";
+  document.getElementById("siSellPrice").value = "0";
+  document.getElementById("siMarginPreview").style.display = "none";
+  populateLinkedMenuSelect("");
+  document.getElementById("stockItemModal").classList.add("open");
+};
+
+App.openEditStockItem = function(idx){
+  const s = state.stockItems[idx];
+  if(!s) return;
+  document.getElementById("stockItemModalTitle").textContent = "ແກ້ໄຂສີນຄ້າ";
+  document.getElementById("stockItemEditIdx").value = idx;
+  document.getElementById("siName").value      = s.name;
+  document.getElementById("siBarcode").value   = s.barcode||"";
+  document.getElementById("siCategory").value  = s.category||"ອື່ນໆ";
+  document.getElementById("siQty").value       = s.qty;
+  document.getElementById("siUnit").value      = s.unit||"";
+  document.getElementById("siMin").value       = s.minQty||0;
+  document.getElementById("siExpiry").value    = s.expiry||"";
+  document.getElementById("siCostPrice").value = s.costPrice||0;
+  document.getElementById("siSellPrice").value = s.sellPrice||0;
+  App._updateMarginPreview();
+  populateLinkedMenuSelect(s.linkedMenu||"");
+  document.getElementById("stockItemModal").classList.add("open");
+};
+
+App.openStockAdj = function(idx){
+  const s = state.stockItems[idx];
+  if(!s) return;
+  document.getElementById("stockAdjIdx").value = idx;
+  document.getElementById("stockAdjTitle").textContent = `ປັບ Stock — ${s.name}`;
+  document.getElementById("stockAdjCurrent").textContent = `ຈຳນວນປັດຈຸບັນ: ${s.qty} ${s.unit||''}`;
+  document.getElementById("stockAdjType").value = "add";
+  document.getElementById("stockAdjQty").value = "1";
+  document.getElementById("stockAdjNote").value = "";
+  document.getElementById("stockAdjModal").classList.add("open");
+};
+
+App.confirmStockAdj = function(){
+  const idx  = parseInt(document.getElementById("stockAdjIdx").value);
+  const type = document.getElementById("stockAdjType").value;
+  const qty  = Math.abs(parseInt(document.getElementById("stockAdjQty").value)||0);
+  const note = document.getElementById("stockAdjNote").value.trim();
+  if(!qty){ toast("ກະລຸນາໃສ່ຈຳນວນ"); return; }
+  const s = state.stockItems[idx];
+  if(!s) return;
+  let change = 0;
+  if(type === "add")    { s.qty += qty; change = qty; }
+  else if(type === "remove"){ s.qty = Math.max(0, s.qty - qty); change = -(Math.min(qty, s.qty+qty)); }
+  else if(type === "set")   { change = qty - s.qty; s.qty = qty; }
+  state.stockLog.unshift({ts:Date.now(), itemId:s.id, itemName:s.name, change, reason: note||type});
+  saveState();
+  renderStock();
+  App.closeModal("stockAdjModal");
+  toast(`ອັບເດດ Stock ${s.name} → ${s.qty} ${s.unit||''}`);
+};
+
+/* ---------------- BARCODE SCANNER (camera, via QuaggaJS) ---------------- */
+let _scanTargetInput = null;
+let _scannerRunning = false;
+
+App.openBarcodeScanner = function(targetInputId){
+  _scanTargetInput = targetInputId;
+  const modal = document.getElementById("barcodeScanModal");
+  const errEl = document.getElementById("scannerError");
+  if(errEl){ errEl.style.display = "none"; errEl.textContent = ""; }
+  modal.classList.add("open");
+
+  if(typeof Quagga === "undefined"){
+    if(errEl){ errEl.textContent = "ໂຫຼດ library ສະແກນບໍ່ສຳເລັດ (ຕ້ອງການອິນເຕີເນັດ)"; errEl.style.display = "block"; }
+    return;
+  }
+
+  Quagga.init({
+    inputStream: {
+      type: "LiveStream",
+      target: document.getElementById("scannerViewport"),
+      constraints: { facingMode: "environment" }
+    },
+    decoder: {
+      readers: ["ean_reader","ean_8_reader","code_128_reader","code_39_reader","upc_reader","upc_e_reader"]
+    },
+    locate: true
+  }, function(err){
+    if(err){
+      console.warn("Quagga init error:", err);
+      if(errEl){ errEl.textContent = "ບໍ່ສາມາດເປີດກ້ອງໄດ້ — ກະລຸນາອະນຸຍາດການເຂົ້າເຖິງກ້ອງ"; errEl.style.display = "block"; }
+      return;
+    }
+    Quagga.start();
+    _scannerRunning = true;
+  });
+
+  Quagga.offDetected(_onBarcodeDetected);
+  Quagga.onDetected(_onBarcodeDetected);
+};
+
+function _onBarcodeDetected(result){
+  const code = result?.codeResult?.code;
+  if(!code) return;
+  const input = document.getElementById(_scanTargetInput);
+  if(input){
+    input.value = code;
+    if(_scanTargetInput === "stockSearch") App.applyStockFilters();
+  }
+  toast(`ສະແກນໄດ້: ${code}`);
+  App.closeBarcodeScanner();
+}
+
+App.closeBarcodeScanner = function(){
+  const modal = document.getElementById("barcodeScanModal");
+  if(modal) modal.classList.remove("open");
+  if(_scannerRunning && typeof Quagga !== "undefined"){
+    try{ Quagga.stop(); }catch(e){ console.warn("Quagga stop error:", e); }
+    _scannerRunning = false;
+  }
+};
+
+/* ---------------- POS SALE (ຂາຍໜ້າຮ້ານ — ຕັດ stock ອັດຕະໂນມັດ) ---------------- */
+let _cart = []; // [{itemIdx, name, unit, price, qty}]
+let _lastSale = null;
+
+App.renderPosItemList = function(){
+  const listEl = document.getElementById("posItemList");
+  if(!listEl) return;
+  const q = (document.getElementById("posSearch")?.value||"").trim().toLowerCase();
+  const items = state.stockItems
+    .map((s, idx)=>({s, idx}))
+    .filter(({s})=> s.qty > 0 && (!q || s.name.toLowerCase().includes(q) || (s.barcode||"").toLowerCase().includes(q)));
+
+  if(items.length === 0){
+    listEl.innerHTML = '<div style="font-size:12px;color:var(--text-faint);text-align:center;padding:10px 0;">ບໍ່ພົບສີນຄ້າ (ຫຼືສີນຄ້າໝົດ)</div>';
+    return;
+  }
+  listEl.innerHTML = items.map(({s, idx})=>{
+    const inCart = _cart.find(c=>c.itemIdx===idx);
+    const leftAfterCart = s.qty - (inCart?inCart.qty:0);
+    return `
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--panel-2); border-radius:9px; padding:8px 10px;">
+        <div style="min-width:0;">
+          <div style="font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeAttr(s.name)}</div>
+          <div style="font-size:11px; color:var(--text-faint);">${fmtKip(s.sellPrice||0)} · ເຫຼືອ ${leftAfterCart} ${escapeAttr(s.unit||"")}</div>
+        </div>
+        <button class="btn btn-primary btn-sm" ${leftAfterCart<=0?"disabled style='opacity:.4;'":""} onclick="App.addToCart(${idx})">+ ເພີ່ມ</button>
+      </div>`;
+  }).join("");
+};
+
+App.addToCart = function(idx){
+  const s = state.stockItems[idx];
+  if(!s) return;
+  let line = _cart.find(c=>c.itemIdx===idx);
+  const currentQty = line ? line.qty : 0;
+  if(currentQty + 1 > s.qty){ toast(`ສີນຄ້າ "${s.name}" ມີບໍ່ພໍ`); return; }
+  if(line){ line.qty += 1; }
+  else{ _cart.push({itemIdx:idx, name:s.name, unit:s.unit||"", price:s.sellPrice||0, qty:1}); }
+  App.renderPosItemList();
+  App.renderCart();
+};
+
+App.changeCartQty = function(cartIdx, delta){
+  const line = _cart[cartIdx];
+  if(!line) return;
+  const s = state.stockItems[line.itemIdx];
+  const newQty = line.qty + delta;
+  if(newQty <= 0){ _cart.splice(cartIdx,1); }
+  else if(s && newQty > s.qty){ toast(`ສີນຄ້າ "${line.name}" ມີບໍ່ພໍ`); return; }
+  else{ line.qty = newQty; }
+  App.renderPosItemList();
+  App.renderCart();
+};
+
+App.renderCart = function(){
+  const cartEl = document.getElementById("posCart");
+  const emptyEl = document.getElementById("posCartEmpty");
+  const totalEl = document.getElementById("posTotal");
+  const confirmBtn = document.getElementById("posConfirmBtn");
+  const heldCountEl = document.getElementById("heldBillsCount");
+  if(!cartEl) return;
+  if(_cart.length === 0){
+    cartEl.innerHTML = "";
+    if(emptyEl) emptyEl.style.display = "block";
+    if(confirmBtn){ confirmBtn.disabled = true; confirmBtn.style.opacity = ".5"; }
+  } else {
+    if(emptyEl) emptyEl.style.display = "none";
+    if(confirmBtn){ confirmBtn.disabled = false; confirmBtn.style.opacity = "1"; }
+    cartEl.innerHTML = _cart.map((c, cIdx)=>`
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+        <div style="min-width:0; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeAttr(c.name)}</div>
+        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+          <button class="btn btn-ghost btn-sm" style="padding:4px 9px;" onclick="App.changeCartQty(${cIdx},-1)">−</button>
+          <span style="min-width:20px; text-align:center; font-size:13px; font-weight:700;">${c.qty}</span>
+          <button class="btn btn-ghost btn-sm" style="padding:4px 9px;" onclick="App.changeCartQty(${cIdx},1)">+</button>
+          <span style="font-size:12px; color:var(--text-dim); min-width:70px; text-align:right;">${fmtKip(c.price*c.qty)}</span>
+        </div>
+      </div>`).join("");
+  }
+  const total = _cart.reduce((sum,c)=>sum+c.price*c.qty, 0);
+  if(totalEl) totalEl.textContent = fmtKip(total);
+  if(heldCountEl){
+    const n = (state.heldBills||[]).length;
+    heldCountEl.textContent = n>0 ? `(${n})` : "";
+  }
+  App.updateChangeCalc();
+};
+
+/* ---- cash received / change ---- */
+App.updateChangeCalc = function(){
+  const total = _cart.reduce((sum,c)=>sum+c.price*c.qty, 0);
+  const cashInput = document.getElementById("posCash");
+  const changeEl = document.getElementById("posChange");
+  if(!cashInput || !changeEl) return;
+  const cash = Math.max(0, parseInt(cashInput.value)||0);
+  const change = cash - total;
+  changeEl.textContent = fmtKip(Math.abs(change));
+  changeEl.style.color = change < 0 ? "#fb7185" : "var(--green)";
+  if(change < 0 && cash > 0) changeEl.textContent += " (ຍັງບໍ່ພໍ)";
+};
+
+App.setCashExact = function(){
+  const total = _cart.reduce((sum,c)=>sum+c.price*c.qty, 0);
+  const cashInput = document.getElementById("posCash");
+  if(cashInput) cashInput.value = total;
+  App.updateChangeCalc();
+};
+
+/* ---- held bills (park a cart, resume later) ---- */
+App.holdCurrentBill = function(){
+  if(_cart.length === 0){ toast("ກະຕ່າຍັງບໍ່ມີສີນຄ້າ"); return; }
+  if(!Array.isArray(state.heldBills)) state.heldBills = [];
+  const label = window.prompt("ຕັ້ງຊື່ບິນ (ຫຼືປະໄວ້ວ່າງ):", "") || "";
+  state.heldBills.unshift({id:uid(), label, items: JSON.parse(JSON.stringify(_cart)), ts:Date.now()});
+  _cart = [];
+  document.getElementById("posCash").value = "";
+  saveState();
+  App.renderPosItemList();
+  App.renderCart();
+  toast("ພັກບິນໄວ້ແລ້ວ");
+};
+
+App.openHeldBills = function(){
+  const listEl = document.getElementById("heldBillsList");
+  const emptyEl = document.getElementById("heldBillsEmpty");
+  const bills = state.heldBills||[];
+  if(bills.length === 0){
+    listEl.innerHTML = "";
+    if(emptyEl) emptyEl.style.display = "block";
+  } else {
+    if(emptyEl) emptyEl.style.display = "none";
+    listEl.innerHTML = bills.map(b=>{
+      const total = b.items.reduce((s,c)=>s+c.price*c.qty,0);
+      return `
+      <div style="background:var(--panel-2); border-radius:10px; padding:10px 12px;">
+        <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700;">
+          <span>${escapeAttr(b.label||"ບິນຄ້າງ")}</span>
+          <span>${fmtKip(total)}</span>
+        </div>
+        <div style="font-size:11px; color:var(--text-faint); margin:4px 0 8px;">${b.items.length} ລາຍການ · ${fmtDateTime(new Date(b.ts))}</div>
+        <div class="btn-row">
+          <button class="btn btn-primary btn-sm" style="flex:1" onclick="App.resumeHeldBill('${b.id}')">📤 ໂຫຼດຄືນ</button>
+          <button class="btn btn-danger btn-sm" onclick="App.deleteHeldBill('${b.id}')">🗑</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+  document.getElementById("heldBillsModal").classList.add("open");
+};
+
+App.resumeHeldBill = function(id){
+  const bills = state.heldBills||[];
+  const bIdx = bills.findIndex(b=>b.id===id);
+  if(bIdx<0) return;
+  if(_cart.length > 0){
+    if(!window.confirm("ກະຕ່າປັດຈຸບັນຈະຖືກແທນທີ່ດ້ວຍບິນຄ້າງນີ້, ດຳເນີນການຕໍ່ບໍ?")) return;
+  }
+  _cart = JSON.parse(JSON.stringify(bills[bIdx].items));
+  bills.splice(bIdx,1);
+  saveState();
+  App.closeModal("heldBillsModal");
+  App.renderPosItemList();
+  App.renderCart();
+};
+
+App.deleteHeldBill = function(id){
+  state.heldBills = (state.heldBills||[]).filter(b=>b.id!==id);
+  saveState();
+  App.openHeldBills();
+  App.renderCart();
+};
+
+/* ---- confirm sale + receipt ---- */
+App.confirmSale = function(){
+  if(_cart.length === 0) return;
+  for(const c of _cart){
+    const s = state.stockItems[c.itemIdx];
+    if(!s || c.qty > s.qty){ toast(`ສີນຄ້າ "${c.name}" ມີບໍ່ພໍ — ກະລຸນາກວດຄືນ`); return; }
+  }
+  const total = _cart.reduce((sum,c)=>sum+c.price*c.qty, 0);
+  const cash  = Math.max(0, parseInt(document.getElementById("posCash")?.value)||0);
+  if(cash > 0 && cash < total){ toast("ຈຳນວນເງິນທີ່ຮັບບໍ່ພໍ"); return; }
+  const change = Math.max(0, cash - total);
+
+  const receiptItems = [];
+  _cart.forEach(c=>{
+    const s = state.stockItems[c.itemIdx];
+    s.qty = Math.max(0, s.qty - c.qty);
+    state.stockLog.unshift({ts:Date.now(), itemId:s.id, itemName:s.name, change:-c.qty, reason:"ຂາຍ"});
+    receiptItems.push({name:c.name, qty:c.qty, unit:c.unit, price:c.price, subtotal:c.price*c.qty});
+  });
+  if(!Array.isArray(state.salesLog)) state.salesLog = [];
+  const saleRecord = {id:uid(), ts:Date.now(), items:receiptItems, total, cash: cash||total, change};
+  state.salesLog.unshift(saleRecord);
+  _lastSale = saleRecord;
+
+  saveState();
+  _cart = [];
+  document.getElementById("posCash").value = "";
+  App.renderPosItemList();
+  App.renderCart();
+  App.showReceiptModal(saleRecord);
+  toast(`ຂາຍສຳເລັດ — ລວມ ${fmtKip(total)}`);
+};
+
+/* ---- receipt display + print ---- */
+App.showReceiptModal = function(sale){
+  const el = document.getElementById("receiptContent");
+  if(!el) return;
+  el.innerHTML = App._buildReceiptHtml(sale, false);
+  document.getElementById("receiptModal").classList.add("open");
+};
+
+App._buildReceiptHtml = function(sale, forPrint){
+  const rows = sale.items.map(it=>`
+    <div style="display:flex; justify-content:space-between; gap:8px; padding:3px 0;">
+      <span>${escapeAttr(it.name)} x${it.qty}</span>
+      <span>${fmtKip(it.subtotal)}</span>
+    </div>`).join("");
+  return `
+    <div style="text-align:center; margin-bottom:10px;">
+      <div style="font-weight:800; font-size:15px;">🏪 BK Snooker</div>
+      <div style="font-size:11px; color:${forPrint?'#444':'var(--text-faint)'};">${fmtDateTime(new Date(sale.ts))}</div>
+    </div>
+    <div style="border-top:1px dashed ${forPrint?'#000':'var(--line)'}; border-bottom:1px dashed ${forPrint?'#000':'var(--line)'}; padding:8px 0; margin-bottom:8px;">
+      ${rows}
+    </div>
+    <div style="display:flex; justify-content:space-between; font-weight:800; margin-bottom:4px;"><span>ລວມ</span><span>${fmtKip(sale.total)}</span></div>
+    <div style="display:flex; justify-content:space-between; font-size:12px;"><span>ຮັບເງິນ</span><span>${fmtKip(sale.cash)}</span></div>
+    <div style="display:flex; justify-content:space-between; font-size:12px;"><span>ທອນ</span><span>${fmtKip(sale.change)}</span></div>
+    <div style="text-align:center; margin-top:10px; font-size:11px; color:${forPrint?'#444':'var(--text-faint)'};">ຂອບໃຈທີ່ອຸດໜູນ 🙏</div>
+  `;
+};
+
+App.printReceipt = function(sale){
+  const record = sale || _lastSale;
+  if(!record) return;
+  const printArea = document.getElementById("printArea");
+  printArea.innerHTML = App._buildReceiptHtml(record, true);
+  window.print();
+};
+
+App.exportStockCsv = function(){
+  const rows = [["ຊື່ສີນຄ້າ","Barcode/SKU","ໝວດໝູ່","ຈຳນວນ","ໜ່ວຍ","Stock ຂັ້ນຕ່ຳ","ເຊື່ອມເມນູ"]];
+  (state.stockItems||[]).forEach(s=>{
+    rows.push([s.name, s.barcode||"", s.category||"", s.qty, s.unit||"", s.minQty||0, s.linkedMenu||""]);
+  });
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob = new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "bk-snooker-stock.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  toast("Export Stock CSV ແລ້ວ");
+};
+
+/* ---------------- SALES REPORT ---------------- */
+function ymd(d){
+  const pad2 = x=>x.toString().padStart(2,"0");
+  return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+}
+
+App.setReportToday = function(){
+  const today = ymd(new Date());
+  const fromEl = document.getElementById("reportFrom");
+  const toEl   = document.getElementById("reportTo");
+  if(fromEl && !fromEl.value) fromEl.value = today;
+  if(toEl && !toEl.value) toEl.value = today;
+  App.renderSalesReport();
+};
+
+function getFilteredSales(){
+  const fromVal = document.getElementById("reportFrom")?.value;
+  const toVal   = document.getElementById("reportTo")?.value;
+  const fromTs = fromVal ? new Date(fromVal+"T00:00:00").getTime() : -Infinity;
+  const toTs   = toVal   ? new Date(toVal+"T23:59:59").getTime()   : Infinity;
+  return (state.salesLog||[]).filter(s=> s.ts >= fromTs && s.ts <= toTs);
+}
+
+App.renderSalesReport = function(){
+  const sales = getFilteredSales();
+  const summaryEl = document.getElementById("reportSummary");
+  const listEl = document.getElementById("reportList");
+  const emptyEl = document.getElementById("reportEmpty");
+  if(!listEl) return;
+
+  const totalRevenue = sales.reduce((s,x)=>s+x.total,0);
+  const totalItems = sales.reduce((s,x)=>s+x.items.reduce((a,i)=>a+i.qty,0),0);
+
+  if(summaryEl){
+    if(sales.length>0){
+      summaryEl.style.display = "block";
+      summaryEl.innerHTML = `
+        <div class="card" style="margin-bottom:12px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+            <div style="background:var(--panel-2);border-radius:10px;padding:10px;text-align:center;">
+              <div style="font-size:11px;color:var(--text-faint);">💰 ຍອດຂາຍລວມ</div>
+              <div style="font-size:14px;font-weight:700;color:var(--green);margin-top:4px;">${fmtKip(totalRevenue)}</div>
+            </div>
+            <div style="background:var(--panel-2);border-radius:10px;padding:10px;text-align:center;">
+              <div style="font-size:11px;color:var(--text-faint);">🧾 ຈຳນວນບິນ</div>
+              <div style="font-size:14px;font-weight:700;color:var(--text);margin-top:4px;">${sales.length}</div>
+            </div>
+            <div style="background:var(--panel-2);border-radius:10px;padding:10px;text-align:center;">
+              <div style="font-size:11px;color:var(--text-faint);">📦 ຈຳນວນສີນຄ້າຂາຍ</div>
+              <div style="font-size:14px;font-weight:700;color:var(--amber);margin-top:4px;">${totalItems}</div>
+            </div>
+          </div>
+        </div>`;
+    } else {
+      summaryEl.style.display = "none";
+      summaryEl.innerHTML = "";
+    }
+  }
+
+  if(sales.length === 0){
+    listEl.innerHTML = "";
+    if(emptyEl) emptyEl.style.display = "block";
+    return;
+  }
+  if(emptyEl) emptyEl.style.display = "none";
+  listEl.innerHTML = sales.map(s=>{
+    const itemsSummary = s.items.map(i=>`${escapeAttr(i.name)} x${i.qty}`).join(", ");
+    return `
+      <div class="stock-log-row" style="cursor:pointer;" onclick='App.showReceiptModal(${JSON.stringify(s).replace(/'/g,"&#39;")})'>
+        <span style="max-width:70%;">
+          <span style="font-weight:700;">${fmtKip(s.total)}</span>
+          <span style="color:var(--text-faint); font-size:11px; display:block;">${itemsSummary}</span>
+        </span>
+        <span style="color:var(--text-faint);font-size:11px;white-space:nowrap;">${fmtDateTime(new Date(s.ts))}</span>
+      </div>`;
+  }).join("");
+};
+
+App.exportSalesCsv = function(){
+  const sales = getFilteredSales();
+  const rows = [["ວັນທີ-ເວລາ","ລາຍການ","ລວມ","ຮັບເງິນ","ທອນ"]];
+  sales.forEach(s=>{
+    const itemsSummary = s.items.map(i=>`${i.name} x${i.qty}`).join("; ");
+    rows.push([fmtDateTime(new Date(s.ts)), itemsSummary, s.total, s.cash||"", s.change||""]);
+  });
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob = new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "bk-snooker-sales-report.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  toast("Export ລາຍງານຍອດຂາຍແລ້ວ");
+};
+
+/* ================================================================
+   FIREBASE SYNC — ເຊື່ອມຕໍ່ດ້ວຍຕົນເອງ (ບໍ່ອີງໃສ່ index.html)
+   ================================================================
+   ບັນທຶກ: ໜ້ານີ້ sync state ທັງໜ່ວຍ (ຄືກັນກັບ index.html) ບໍ່ແມ່ນສະເພາະ stock —
+   ເພາະ Firebase ເກັບ "posState" ເປັນ object ດຽວທັງໝົດ ຈຶ່ງຕ້ອງສົ່ງທັງໝົດໄປນຳ
+   ເພື່ອບໍ່ໃຫ້ທັບຂໍ້ມູນ tables/bills ອື່ນທີ່ POS ຫຼັກກຳລັງໃຊ້ຢູ່
+*/
+let db = null;
+const _fbClientId = "stock_" + Date.now() + "_" + Math.random().toString(36).slice(2,8);
+let _fbReady = false;
+let _pendingRemote = null;
+let _remoteTimer = null;
+
+function setSyncStatus(mode){
+  const dot = document.getElementById("syncDot");
+  const label = document.getElementById("syncLabel");
+  if(!dot || !label) return;
+  dot.className = "sync-dot" + (mode==="offline"?" offline":mode==="syncing"?" syncing":"");
+  label.textContent = mode==="offline" ? "ອອບໄລນ໌ (ບັນທຶກໃນເຄື່ອງເທົ່ານັ້ນ)"
+                    : mode==="syncing" ? "ກຳລັງ sync..."
+                    : "Sync ກັບ POS ຫຼັກແລ້ວ";
+}
+
+function initFirebase(){
+  try{
+    const firebaseConfig = {
+      apiKey: "AIzaSyAK2tpz70byx7bzPElHlOgormR8KTFfAOM",
+      authDomain: "bk-snooker-db.firebaseapp.com",
+      databaseURL: "https://bk-snooker-db-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "bk-snooker-db",
+      storageBucket: "bk-snooker-db.firebasestorage.app",
+      messagingSenderId: "102458494634",
+      appId: "1:102458494634:web:6b910440d278fee9db4ad3",
+      measurementId: "G-L6NEV11G9M"
+    };
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    _fbReady = true;
+
+    // ດຶງຂໍ້ມູນຫຼ້າສຸດ ຄັ້ງດຽວກ່ອນ ເພື່ອບໍ່ໃຫ້ໜ້ານີ້ສະແດງຂໍ້ມູນເກົ່າ ກ່ອນ realtime listener ຈະທັນ
+    db.ref("posState").once("value").then(snap=>{
+      const payload = snap.val();
+      if(payload && payload.data){
+        state = mergeRemoteIntoLocal(payload.data);
+        persistLocal();
+        refreshActiveTab();
+      }
+      setSyncStatus("online");
+      subscribeRealtime();
+    }).catch(err=>{
+      console.warn("Firebase ດຶງຂໍ້ມູນເລີ່ມຕົ້ນບໍ່ສຳເລັດ:", err.message);
+      setSyncStatus("offline");
+      subscribeRealtime(); // ລອງ subscribe ຕໍ່ໄປຢູ່ ຖ້າເນັດກັບມາຈະໄດ້ຮັບຂໍ້ມູນ
+    });
+  }catch(e){
+    console.warn("Firebase init error:", e);
+    setSyncStatus("offline");
+  }
+}
+
+function mergeRemoteIntoLocal(remoteData){
+  // ຮັບເອົາຂໍ້ມູນຈາກ Firebase ມາທັງໝົດ (ຄືກັນກັບວິທີ index.html ໃຊ້) ແຕ່ຮັບປະກັນ field ທີ່ໜ້ານີ້ຕ້ອງໃຊ້ຄົບ
+  const merged = Object.assign({}, remoteData);
+  if(!Array.isArray(merged.stockItems)) merged.stockItems = [];
+  if(!Array.isArray(merged.stockLog))   merged.stockLog   = [];
+  if(!Array.isArray(merged.menuItems))  merged.menuItems  = [];
+  if(!Array.isArray(merged.salesLog))   merged.salesLog   = [];
+  if(!Array.isArray(merged.heldBills))  merged.heldBills  = [];
+  return merged;
+}
+
+function subscribeRealtime(){
+  if(!db) return;
+  db.ref("posState").on("value", (snapshot)=>{
+    const payload = snapshot.val();
+    if(!payload || !payload.data) return;
+    if(payload._origin === _fbClientId) return; // echo ຂອງໜ້ານີ້ເອງ — ຂ້າມ
+    // Debounce ເລັກນ້ອຍ ເພື່ອລວມ update ຫຼາຍໆອັນທີ່ມາຕິດໆກັນ
+    _pendingRemote = payload.data;
+    clearTimeout(_remoteTimer);
+    _remoteTimer = setTimeout(()=>{
+      if(!_pendingRemote) return;
+      state = mergeRemoteIntoLocal(_pendingRemote);
+      _pendingRemote = null;
+      persistLocal();
+      refreshActiveTab();
+      setSyncStatus("online");
+    }, 400);
+  }, (err)=>{
+    console.warn("Firebase realtime listener error:", err.message);
+    setSyncStatus("offline");
+  });
+}
+
+// ບັນທຶກ local ທັນທີ ແລະ ສົ່ງ Firebase ແບບພື້ນຫຼັງ (ບໍ່ລໍຖ້າ, ບໍ່ມີວັນເຮັດໃຫ້ໜ້ານີ້ຄ້າງ)
+function saveState(){
+  persistLocal(); // ບັນທຶກ local ທັນທີສະເໝີ — ໜ້ານີ້ໃຊ້ໄດ້ແມ່ນວ່າອອບໄລນ໌
+  if(!_fbReady || !db){ setSyncStatus("offline"); return; }
+  setSyncStatus("syncing");
+  try{
+    const clean = JSON.parse(JSON.stringify(state));
+    db.ref("posState").set({ _origin: _fbClientId, _ts: Date.now(), data: clean })
+      .then(()=> setSyncStatus("online"))
+      .catch(err=>{
+        console.warn("Firebase ບັນທຶກບໍ່ສຳເລັດ:", err.message);
+        setSyncStatus("offline");
+      });
+  }catch(e){
+    console.warn("saveState error:", e);
+    setSyncStatus("offline");
+  }
+}
+
+/* ---------------- INIT ---------------- */
+renderStock();
+App.switchTab("sale");
+setSyncStatus(navigator.onLine ? "syncing" : "offline");
+initFirebase();
+
+window.addEventListener("online", ()=>{ if(_fbReady) setSyncStatus("online"); });
+window.addEventListener("offline", ()=> setSyncStatus("offline"));
+
+})();
+</script>
+</body>
+</html>
