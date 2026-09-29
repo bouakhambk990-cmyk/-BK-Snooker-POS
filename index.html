@@ -1874,13 +1874,34 @@ App.openBarcodeScanner = function(targetInputId){
 function _onBarcodeDetected(result){
   const code = result?.codeResult?.code;
   if(!code) return;
+  App.closeBarcodeScanner();
+
+  if(_scanTargetInput === "posSearch"){
+    const input = document.getElementById("posSearch");
+    const match = state.stockItems.find(s=>s.barcode && s.barcode === code);
+    if(match){
+      if(input) input.value = "";
+      if(match.qty > 0){
+        App.addToCart("item", match.id, 0);
+        toast(`✅ ເພີ່ມ "${match.name}" ເຂົ້າກະຕ່າແລ້ວ`);
+      } else {
+        toast(`"${match.name}" ສີນຄ້າໝົດ`);
+        App.renderPosItemList();
+      }
+    } else {
+      if(input) input.value = code;
+      App.renderPosItemList();
+      toast(`ບໍ່ພົບສີນຄ້າທີ່ມີ Barcode: ${code}`);
+    }
+    return;
+  }
+
   const input = document.getElementById(_scanTargetInput);
   if(input){
     input.value = code;
     if(_scanTargetInput === "stockSearch") App.applyStockFilters();
   }
   toast(`ສະແກນໄດ້: ${code}`);
-  App.closeBarcodeScanner();
 }
 
 App.closeBarcodeScanner = function(){
