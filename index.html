@@ -113,6 +113,15 @@
   .qty-step{display:inline-flex; align-items:center; gap:6px;}
   .qty-step button{width:26px; height:26px; border-radius:8px;}
 
+  .scan-wrap{position:relative; width:100%; min-height:240px; background:#000; border-radius:10px; overflow:hidden;}
+  #scannerViewport{position:relative; width:100%;}
+  #scannerViewport video{width:100%; display:block;}
+  #scannerViewport canvas{display:none;}
+  .scan-overlay{position:absolute; inset:0; pointer-events:none;}
+  .scan-frame{position:absolute; top:30%; bottom:30%; left:5%; right:5%; border:2px solid rgba(255,255,255,.6); border-radius:10px; box-shadow:0 0 0 999px rgba(0,0,0,.45);}
+  .scan-line{position:absolute; left:0; right:0; top:50%; height:2px; margin-top:-1px; background:#ff2b2b; box-shadow:0 0 8px 2px rgba(255,43,43,.85); animation:scanpulse 1.2s ease-in-out infinite;}
+  @keyframes scanpulse{0%,100%{opacity:1;} 50%{opacity:.45;}}
+
   #printArea{display:none;}
   @media print{
     body *{visibility:hidden;}
@@ -134,6 +143,8 @@
   <div class="tabbar">
     <button class="tab-btn active" id="tabBtnSale" onclick="App.switchTab('sale')">🛒 ຂາຍ</button>
     <button class="tab-btn" id="tabBtnStock" onclick="App.switchTab('stock')">📦 ສະຕັອກ</button>
+    <button class="tab-btn" id="tabBtnReceive" onclick="App.switchTab('receive')">🚚 ຮັບເຂົ້າ</button>
+    <button class="tab-btn" id="tabBtnAudit" onclick="App.switchTab('audit')">📋 ກວດນັບ</button>
     <button class="tab-btn" id="tabBtnReport" onclick="App.switchTab('report')">📊 ລາຍງານຍອດຂາຍ</button>
   </div>
 
@@ -196,6 +207,15 @@
   </div>
 
   <div class="card" style="margin-top:14px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;">
+      <h2 class="section-title" style="font-size:14px; margin:0;"><span class="bar"></span>🍹 ເມນູປະສົມ (Recipe)</h2>
+      <button class="btn btn-primary btn-sm" onclick="App.openRecipeModal('')">+ ເພີ່ມເມນູ</button>
+    </div>
+    <p style="font-size:12px; color:var(--text-faint); margin:0 0 10px;">ເມນູທີ່ໃຊ້ຫຼາຍວັດຖຸດິບ ເຊັ່ນ ກາເຟ 1 ແກ້ວ = ນົມ + ເມັດກາເຟ + ແກ້ວ — ເວລາຂາຍຈະຕັດ Stock ທຸກຢ່າງອັດຕະໂນມັດ</p>
+    <div id="recipeList" style="display:flex; flex-direction:column; gap:8px;"></div>
+  </div>
+
+  <div class="card" style="margin-top:14px;">
     <h2 class="section-title" style="font-size:14px;"><span class="bar"></span>📋 ປະຫວັດການເຄື່ອນໄຫວ Stock</h2>
     <div id="stockLogAll" class="stock-log"></div>
   </div>
@@ -203,7 +223,85 @@
   </div>
   <!-- ===================== /VIEW: STOCK ===================== -->
 
-  <!-- ===================== VIEW: REPORT ===================== -->
+  <!-- ===================== VIEW: RECEIVE (GRN + SUPPLIERS) ===================== -->
+  <div id="viewReceive" style="display:none;">
+    <div class="card" style="margin-bottom:12px;">
+      <h2 class="section-title" style="font-size:14px;"><span class="bar"></span>🚚 ໃບຮັບສີນຄ້າເຂົ້າ (GRN)</h2>
+      <p style="font-size:12px; color:var(--text-faint); margin:0 0 10px;">ມີສີນຄ້າມາສົ່ງ 1 ໃບບິນ/1 ລັງ — ປ້ອນເທື່ອດຽວ ລະບົບຈະເພີ່ມ Stock ທຸກລາຍການ ແລະເກັບເອກະສານອ້າງອີງໄວ້</p>
+      <div class="grid-2">
+        <div class="field"><label>ຜູ້ສະໜອງ</label><select id="grnSupplier"></select></div>
+        <div class="field"><label>ເລກທີໃບບິນຊື້</label><input id="grnBillNo" placeholder="ເຊັ່ນ INV-001"></div>
+      </div>
+      <div class="field"><label>ວັນທີຮັບເຂົ້າ</label><input id="grnDate" type="date"></div>
+      <div id="grnRows"></div>
+      <div class="btn-row" style="margin-bottom:12px;">
+        <button class="btn btn-ghost btn-sm" onclick="App.addGrnRow()">+ ເພີ່ມລາຍການ</button>
+        <button class="btn btn-ghost btn-sm" onclick="App.addLowStockToGrn()">⚠ ເພີ່ມສີນຄ້າທີ່ໃກ້ໝົດ</button>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:16px; font-weight:800; margin-bottom:10px;">
+        <span>ລາຄາຊື້ລວມ</span><span id="grnTotal" style="color:var(--green);">0 ກີບ</span>
+      </div>
+      <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-dim); margin-bottom:10px;">
+        <input type="checkbox" id="grnUpdateCost" checked style="width:auto; flex:none;"> ອັບເດດຕົ້ນທຶນສີນຄ້າຕາມລາຄາຊື້ໃໝ່
+      </label>
+      <div class="field"><input id="grnNote" placeholder="ໝາຍເຫດ / ເອກະສານອ້າງອີງ (ບໍ່ບັງຄັບ)"></div>
+      <button class="btn btn-primary btn-block" onclick="App.saveGrn()">✅ ບັນທຶກຮັບເຂົ້າ Stock</button>
+    </div>
+
+    <div class="card" style="margin-bottom:12px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px;">
+        <h2 class="section-title" style="font-size:14px; margin:0;"><span class="bar"></span>🏢 ຜູ້ສະໜອງ (Supplier)</h2>
+        <button class="btn btn-primary btn-sm" onclick="App.openSupplierModal('')">+ ເພີ່ມ</button>
+      </div>
+      <div id="supplierList" style="display:flex; flex-direction:column; gap:8px;"></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px;">
+        <h2 class="section-title" style="font-size:14px; margin:0;"><span class="bar"></span>🧾 ປະຫວັດຮັບສີນຄ້າເຂົ້າ</h2>
+        <button class="btn btn-ghost btn-sm" onclick="App.exportGrnCsv()">📊 CSV</button>
+      </div>
+      <div id="grnHistory" style="display:flex; flex-direction:column; gap:8px;"></div>
+    </div>
+  </div>
+  <!-- ===================== /VIEW: RECEIVE ===================== -->
+
+  <!-- ===================== VIEW: AUDIT ===================== -->
+  <div id="viewAudit" style="display:none;">
+    <div class="card" style="margin-bottom:12px;">
+      <h2 class="section-title" style="font-size:14px;"><span class="bar"></span>📋 ກວດນັບ Stock ຕົວຈິງ</h2>
+      <p style="font-size:12px; color:var(--text-faint); margin:0 0 10px;">ນັບສີນຄ້າໃນຮ້ານແລ້ວໃສ່ຈຳນວນຕົວຈິງ — ຊ່ອງທີ່ປ່ອຍວ່າງ = ບໍ່ນັບ (ບໍ່ປ່ຽນ Stock). ເມື່ອບັນທຶກ ລະບົບຈະປັບ Stock ໃຫ້ຕົງກັບຕົວຈິງ ແລະເກັບປະຫວັດສ່ວນຕ່າງ (Diff Log)</p>
+      <input id="auditSearch" type="text" placeholder="🔍 ຄົ້ນຫາສີນຄ້າ..." oninput="App.renderAuditList()" style="margin-bottom:10px;">
+      <div id="auditList" style="display:flex; flex-direction:column; gap:8px; max-height:420px; overflow-y:auto; margin-bottom:10px;"></div>
+      <div id="auditSummary" style="background:var(--panel-2); border-radius:8px; padding:8px 12px; margin-bottom:10px; font-size:12px; color:var(--text-dim);"></div>
+      <div class="field"><input id="auditNote" placeholder="ໝາຍເຫດ / ຊື່ຜູ້ນັບ (ບໍ່ບັງຄັບ)"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" style="flex:1;" onclick="App.saveAudit()">✅ ບັນທຶກຜົນກວດນັບ</button>
+        <button class="btn btn-ghost" onclick="App.clearAudit()">ລ້າງ</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px;">
+        <h2 class="section-title" style="font-size:14px; margin:0;"><span class="bar"></span>📉 ສະຫຼຸບສີນຄ້າເສຍຫາຍ / ຕັດອອກ</h2>
+        <select id="lossRange" onchange="App.renderLossSummary()" style="width:auto;">
+          <option value="1">ມື້ນີ້</option>
+          <option value="7">7 ມື້</option>
+          <option value="30" selected>30 ມື້</option>
+          <option value="0">ທັງໝົດ</option>
+        </select>
+      </div>
+      <div id="lossSummary"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title" style="font-size:14px;"><span class="bar"></span>🧾 ປະຫວັດການກວດນັບ (Diff Log)</h2>
+      <div id="auditHistory" style="display:flex; flex-direction:column; gap:8px;"></div>
+    </div>
+  </div>
+  <!-- ===================== /VIEW: AUDIT ===================== -->
+
+  <!-- ===================== VIEW: REPORT =====================
   <div id="viewReport" style="display:none;">
     <div class="card" style="margin-bottom:12px;">
       <div class="grid-2" style="margin-bottom:10px;">
@@ -219,6 +317,18 @@
 
     <div id="reportSummary" style="display:none;"></div>
 
+    <div class="card" style="margin-bottom:12px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px;">
+        <h2 class="section-title" style="font-size:14px; margin:0;"><span class="bar"></span>🏆 ສີນຄ້າຂາຍດີ (Top 10)</h2>
+        <select id="bestSort" onchange="App.renderSalesReport()" style="width:auto;">
+          <option value="qty">ຕາມຈຳນວນ</option>
+          <option value="rev">ຕາມລາຍຮັບ</option>
+          <option value="profit">ຕາມກຳໄລ</option>
+        </select>
+      </div>
+      <div id="bestSellers"></div>
+    </div>
+
     <div class="card">
       <h2 class="section-title" style="font-size:14px;"><span class="bar"></span>🧾 ລາຍການຂາຍ</h2>
       <div id="reportList"></div>
@@ -226,6 +336,34 @@
         <div class="ic">🧾</div>
         ຍັງບໍ່ມີຍອດຂາຍໃນຊ່ວງທີ່ເລືອກ
       </div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <h2 class="section-title" style="font-size:14px;"><span class="bar"></span>🔔 ແຈ້ງເຕືອນ Telegram</h2>
+      <p style="font-size:12px; color:var(--text-faint); margin:0 0 10px;">ເມື່ອສີນຄ້າຕ່ຳກວ່າ Stock ຂັ້ນຕ່ຳ, ໝົດ ຫຼືໃກ້ໝົດອາຍຸ ລະບົບຈະສົ່ງຂໍ້ຄວາມເຂົ້າ Telegram ອັດຕະໂນມັດ. ⚠ ສົ່ງໄດ້ສະເພາະເວລາມີເຄື່ອງທີ່ເປີດໜ້ານີ້ຢູ່. LINE Notify ຖືກປິດບໍລິການແລ້ວຕັ້ງແຕ່ 31 ມີນາ 2025.</p>
+      <div class="field"><label>Bot Token</label><input id="tgToken" type="password" autocomplete="off" placeholder="123456789:ABC-DEF..."></div>
+      <div class="field"><label>Chat ID</label><input id="tgChatId" autocomplete="off" placeholder="ເຊັ່ນ 123456789 ຫຼື -100xxxxxxxxxx (ກຸ່ມ)"></div>
+      <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:8px;">
+        <input type="checkbox" id="tgEnabled" style="width:auto; flex:none;"> ເປີດການແຈ້ງເຕືອນອັດຕະໂນມັດ
+      </label>
+      <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:12px;">
+        <input type="checkbox" id="tgExpiry" checked style="width:auto; flex:none;"> ແຈ້ງເຕືອນສີນຄ້າໃກ້ໝົດອາຍຸ (≤ 7 ມື້) ນຳ
+      </label>
+      <div class="btn-row" style="margin-bottom:10px;">
+        <button class="btn btn-primary btn-sm" onclick="App.saveNotifySettings()">💾 ບັນທຶກ</button>
+        <button class="btn btn-ghost btn-sm" onclick="App.testNotify()">📨 ທົດສອບສົ່ງ</button>
+        <button class="btn btn-ghost btn-sm" onclick="App.sendStockSummaryNow()">📋 ສົ່ງສະຫຼຸບດຽວນີ້</button>
+      </div>
+      <details style="font-size:12px; color:var(--text-dim);">
+        <summary style="cursor:pointer; font-weight:700;">ວິທີຕັ້ງຄ່າ</summary>
+        <ol style="margin:8px 0 0; padding-left:18px; line-height:1.7;">
+          <li>ໃນ Telegram ຄົ້ນຫາ <b>@BotFather</b> → ພິມ /newbot → ໄດ້ <b>Bot Token</b></li>
+          <li>ເປີດ Bot ທີ່ສ້າງ ແລ້ວກົດ Start (ຫຼືເພີ່ມ Bot ເຂົ້າກຸ່ມທີ່ຕ້ອງການ)</li>
+          <li>ຫາ <b>Chat ID</b>: ຄົ້ນຫາ <b>@userinfobot</b> ແລ້ວກົດ Start (ໄດ້ ID ຂອງທ່ານ) ຫຼືໃຊ້ getUpdates ສຳລັບກຸ່ມ</li>
+          <li>ໃສ່ທັງສອງຄ່າຂ້າງເທິງ ກົດ "ບັນທຶກ" ແລ້ວ "ທົດສອບສົ່ງ"</li>
+        </ol>
+        <div style="margin-top:8px; color:var(--text-faint);">Token ຖືກເກັບໃນເຄື່ອງນີ້ເທົ່ານັ້ນ (ບໍ່ sync ຂຶ້ນ Firebase). ຕ້ອງຕັ້ງຄ່າໃນທຸກເຄື່ອງທີ່ຢາກໃຫ້ສົ່ງ — ລະບົບຈື່ໄວ້ວ່າສົ່ງແລ້ວເພື່ອບໍ່ໃຫ້ຊ້ຳ.</div>
+      </details>
     </div>
   </div>
   <!-- ===================== /VIEW: REPORT ===================== -->
@@ -300,16 +438,24 @@
         </select>
       </div>
       <div class="grid-2">
-        <div class="field"><label>ຈຳນວນເລີ່ມຕົ້ນ</label><input id="siQty" type="number" min="0" value="0"></div>
-        <div class="field"><label>ໜ່ວຍ</label><input id="siUnit" placeholder="ຂວດ, ກ້ອນ, ອັນ"></div>
+        <div class="field"><label>ຈຳນວນເລີ່ມຕົ້ນ (ໜ່ວຍຍ່ອຍ)</label><input id="siQty" type="number" min="0" value="0"></div>
+        <div class="field"><label>ໜ່ວຍຍ່ອຍ (ທີ່ຂາຍ)</label><input id="siUnit" placeholder="ຂວດ, ກະປ໋ອງ, ອັນ"></div>
+      </div>
+      <div style="background:var(--panel-2); border:1px dashed var(--line); border-radius:10px; padding:10px 12px; margin-bottom:12px;">
+        <div style="font-size:12px; font-weight:700; color:var(--text-dim); margin-bottom:8px;">📦 ໜ່ວຍໃຫຍ່ (ບໍ່ບັງຄັບ) — ເຊັ່ນ 1 ແກັດ = 24 ຂວດ</div>
+        <div class="grid-2">
+          <div class="field" style="margin-bottom:8px;"><label>ຊື່ໜ່ວຍໃຫຍ່</label><input id="siPackUnit" placeholder="ແກັດ, ລັງ"></div>
+          <div class="field" style="margin-bottom:8px;"><label>1 ໜ່ວຍໃຫຍ່ = ? ໜ່ວຍຍ່ອຍ</label><input id="siPackSize" type="number" min="0" placeholder="24"></div>
+        </div>
+        <div class="field" style="margin-bottom:0;"><label>ລາຄາຂາຍໜ່ວຍໃຫຍ່ (ຖ້າວ່າງ = ລາຄາຍ່ອຍ × ຈຳນວນ)</label><input id="siPackPrice" type="number" min="0" placeholder="0"></div>
       </div>
       <div class="grid-2">
         <div class="field">
-          <label>💰 ຕົ້ນທຶນ / ໜ່ວຍ (ກີບ)</label>
+          <label>💰 ຕົ້ນທຶນ / ໜ່ວຍຍ່ອຍ (ກີບ)</label>
           <input id="siCostPrice" type="number" min="0" value="0" placeholder="ລາຄາຊື້ເຂົ້າ" oninput="App._updateMarginPreview()">
         </div>
         <div class="field">
-          <label>💵 ລາຄາຂາຍ / ໜ່ວຍ (ກີບ)</label>
+          <label>💵 ລາຄາຂາຍ / ໜ່ວຍຍ່ອຍ (ກີບ)</label>
           <input id="siSellPrice" type="number" min="0" value="0" placeholder="ລາຄາຂາຍ" oninput="App._updateMarginPreview()">
         </div>
       </div>
@@ -325,6 +471,40 @@
     </div>
   </div>
 
+  <!-- ===================== SUPPLIER MODAL ===================== -->
+  <div class="overlay" id="supplierModal">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-head">
+        <h3 id="supModalTitle">ເພີ່ມຜູ້ສະໜອງ</h3>
+        <button class="close-x" onclick="App.closeModal('supplierModal')">✕</button>
+      </div>
+      <input type="hidden" id="supEditId" value="">
+      <div class="field"><label>ຊື່ຮ້ານສົ່ງ / ຜູ້ສະໜອງ</label><input id="supName" placeholder="ເຊັ່ນ ຕົວແທນເບຍລາວ"></div>
+      <div class="field"><label>ເບີໂທ</label><input id="supPhone" type="tel" placeholder="020 xxxx xxxx"></div>
+      <div class="field"><label>ສີນຄ້າທີ່ສະໜອງ</label><input id="supProducts" placeholder="ເຊັ່ນ ເບຍ, ນ້ຳດື່ມ"></div>
+      <div class="field"><label>ເອກະສານ / ໝາຍເຫດ</label><input id="supNote" placeholder="ເຊັ່ນ ເລກບັນຊີ, ເງື່ອນໄຂຈ່າຍ, ເລກທະບຽນ"></div>
+      <button class="btn btn-primary btn-block" onclick="App.saveSupplier()">ບັນທຶກ</button>
+    </div>
+  </div>
+
+  <!-- ===================== RECIPE MODAL ===================== -->
+  <div class="overlay" id="recipeModal">
+    <div class="modal" style="max-width:440px;">
+      <div class="modal-head">
+        <h3 id="rcModalTitle">ເພີ່ມເມນູປະສົມ</h3>
+        <button class="close-x" onclick="App.closeModal('recipeModal')">✕</button>
+      </div>
+      <input type="hidden" id="rcEditId" value="">
+      <div class="field"><label>ຊື່ເມນູ</label><input id="rcName" placeholder="ເຊັ່ນ ກາເຟເຢັນ, ເບຍ + ກ້ອນ"></div>
+      <div class="field"><label>ລາຄາຂາຍ (ກີບ)</label><input id="rcPrice" type="number" min="0" value="0" oninput="App._updateRecipeCost()"></div>
+      <label>ສ່ວນປະກອບ (ຈຳນວນທີ່ຕັດ Stock ຕໍ່ 1 ຈານ/ແກ້ວ, ເປັນໜ່ວຍຍ່ອຍ)</label>
+      <div id="rcRows" style="margin-bottom:8px;"></div>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="App.addRecipeRow()">+ ເພີ່ມສ່ວນປະກອບ</button>
+      <div id="rcCostPreview" style="background:var(--panel-2); border-radius:8px; padding:8px 12px; margin:12px 0; font-size:13px;"></div>
+      <button class="btn btn-primary btn-block" onclick="App.saveRecipe()">ບັນທຶກເມນູ</button>
+    </div>
+  </div>
+
   <!-- ===================== ADJUST STOCK MODAL ===================== -->
   <div class="overlay" id="stockAdjModal">
     <div class="modal" style="max-width:380px;">
@@ -335,13 +515,15 @@
       <input type="hidden" id="stockAdjIdx" value="">
       <p style="font-size:13px; color:var(--text-dim); margin:0 0 14px;" id="stockAdjCurrent"></p>
       <div class="field"><label>ປະເພດ</label>
-        <select id="stockAdjType">
+        <select id="stockAdjType" onchange="App.onAdjTypeChange()">
           <option value="add">➕ ຮັບສີນຄ້າເຂົ້າ (Restock)</option>
           <option value="remove">➖ ຕັດອອກ (Manual)</option>
           <option value="set">🔄 ຕັ້ງຄ່າໃໝ່ (Set)</option>
         </select>
       </div>
+      <div class="field" id="stockAdjReasonWrap" style="display:none;"><label>ເຫດຜົນການຕັດ Stock</label><select id="stockAdjReason"></select></div>
       <div class="field"><label>ຈຳນວນ</label><input id="stockAdjQty" type="number" min="1" value="1"></div>
+      <div class="field" id="stockAdjUnitWrap" style="display:none;"><label>ໜ່ວຍ</label><select id="stockAdjUnit"></select></div>
       <div class="field"><label>ໝາຍເຫດ</label><input id="stockAdjNote" placeholder="ເຊັ່ນ ຮັບສີນຄ້າໃໝ່, ສີນຄ້າໝົດອາຍຸ"></div>
       <button class="btn btn-primary btn-block" onclick="App.confirmStockAdj()">ຢືນຢັນ</button>
     </div>
@@ -385,8 +567,11 @@
         <h3>📷 ສະແກນ Barcode</h3>
         <button class="close-x" onclick="App.closeBarcodeScanner()">✕</button>
       </div>
-      <div id="scannerViewport" style="position:relative; width:100%; min-height:260px; background:#000; border-radius:10px; overflow:hidden;"></div>
-      <p style="font-size:12px; color:var(--text-dim); margin:12px 0 0; text-align:center;">ຈໍ່ກ້ອງໃສ່ Barcode ໃຫ້ຢູ່ໃນກອບ</p>
+      <div class="scan-wrap">
+        <div id="scannerViewport"></div>
+        <div class="scan-overlay"><div class="scan-frame"><div class="scan-line"></div></div></div>
+      </div>
+      <p style="font-size:12px; color:var(--text-dim); margin:12px 0 0; text-align:center;">ວາງ Barcode ໃຫ້ຢູ່ໃນກອບ ແລະ ໃຫ້ເສັ້ນສີແດງພາດຜ່ານກາງ Barcode</p>
       <p id="scannerError" style="font-size:12px; color:#fb7185; margin:8px 0 0; text-align:center; display:none;"></p>
     </div>
   </div>
@@ -426,6 +611,10 @@ function loadFullState(){
   if(!Array.isArray(s.menuItems))  s.menuItems  = [];
   if(!Array.isArray(s.salesLog))   s.salesLog   = [];
   if(!Array.isArray(s.heldBills))  s.heldBills  = [];
+  if(!Array.isArray(s.recipes))    s.recipes    = [];
+  if(!Array.isArray(s.audits))     s.audits     = [];
+  if(!Array.isArray(s.suppliers))  s.suppliers  = [];
+  if(!Array.isArray(s.grns))       s.grns       = [];
   return s;
 }
 let state = loadFullState();
@@ -489,18 +678,20 @@ function refreshActiveTab(){
 }
 
 App.switchTab = function(tab){
-  const views = {sale:"viewSale", stock:"viewStock", report:"viewReport"};
+  const views = {sale:"viewSale", stock:"viewStock", receive:"viewReceive", audit:"viewAudit", report:"viewReport"};
   Object.entries(views).forEach(([key, id])=>{
     const el = document.getElementById(id);
     if(el) el.style.display = (key===tab) ? "block" : "none";
   });
-  ["Sale","Stock","Report"].forEach(name=>{
+  ["Sale","Stock","Receive","Audit","Report"].forEach(name=>{
     const btn = document.getElementById("tabBtn"+name);
     if(btn) btn.classList.toggle("active", name.toLowerCase()===tab);
   });
   if(tab==="sale"){ App.renderPosItemList(); App.renderCart(); }
   else if(tab==="stock"){ renderStock(); }
-  else if(tab==="report"){ App.setReportToday(); }
+  else if(tab==="receive"){ App.renderReceiveAll(); }
+  else if(tab==="audit"){ App.renderAuditAll(); }
+  else if(tab==="report"){ App.setReportToday(); App.renderNotifySettings(); }
 };
 
 /* ================================================================
@@ -544,6 +735,33 @@ App.clearStockFilters = function(){
   _stockFilters = {q:"", category:"", quick:""};
   renderStock();
 };
+
+/* ---------------- MULTI-UNIT & RECIPE HELPERS ---------------- */
+function findStockById(id){ return (state.stockItems||[]).find(s=>s.id===id); }
+function packInfo(s){ return (s && s.packUnit && s.packSize>=2) ? {unit:s.packUnit, size:s.packSize} : null; }
+function fmtPackBreakdown(s){
+  const p = packInfo(s); if(!p) return "";
+  const packs = Math.floor(s.qty / p.size), rem = s.qty % p.size;
+  const parts = [];
+  if(packs>0) parts.push(`${packs} ${p.unit}`);
+  if(rem>0 || packs===0) parts.push(`${rem} ${s.unit||""}`);
+  return parts.join(" + ");
+}
+function recipeUses(r){ return (r.ingredients||[]).map(g=>({itemId:g.itemId, per:g.qty})); }
+function recipeCost(r){
+  return (r.ingredients||[]).reduce((sum,g)=>{ const s=findStockById(g.itemId); return sum + (s?(s.costPrice||0)*g.qty:0); },0);
+}
+function usesMaxPortions(uses, consumed){
+  if(!uses.length) return 0;
+  let max = Infinity;
+  for(const u of uses){
+    const s = findStockById(u.itemId);
+    if(!s || !(u.per>0)) return 0;
+    const left = s.qty - ((consumed && consumed[u.itemId]) || 0);
+    max = Math.min(max, Math.floor(left / u.per));
+  }
+  return Math.max(0, max);
+}
 
 function daysUntilExpiry(s){
   if(!s.expiry) return null;
@@ -672,12 +890,14 @@ function renderStock(){
             ${isExpired?'<span class="stock-badge-low">❌ ໝົດອາຍຸ</span>':isExpiringSoon?`<span class="stock-badge-low" style="background:#3a2e14;color:var(--amber);">⏰ ${expDays}ມື້</span>`:""}
           </div>
           <div><span class="s-qty">${s.qty}</span><span class="s-unit">${escapeAttr(s.unit||"")}</span></div>
+          ${packInfo(s)?`<div style="font-size:12px;color:var(--amber);margin-top:2px;">= ${escapeAttr(fmtPackBreakdown(s))}</div>`:""}
           <div class="s-min">ຂັ້ນຕ່ຳ: ${s.minQty} ${escapeAttr(s.unit||"")}
             ${s.linkedMenu?`· ເຊື່ອມ: <span style="color:var(--green)">${escapeAttr(s.linkedMenu)}</span>`:""}
           </div>
           ${s.category?`<div style="font-size:10px;color:var(--text-faint);margin-top:2px;">🏷 ${escapeAttr(s.category)}</div>`:""}
           ${s.barcode?`<div style="font-size:10px;color:var(--text-faint);margin-top:1px;">🏷️ SKU: ${escapeAttr(s.barcode)}</div>`:""}
           ${s.expiry?`<div style="font-size:10px;margin-top:1px;color:${isExpired?'#fb7185':isExpiringSoon?'var(--amber)':'var(--text-faint)'};">📆 ໝົດອາຍຸ: ${escapeAttr(s.expiry)}</div>`:""}
+          ${(()=>{ const sp=(state.suppliers||[]).find(x=>x.id===s.supplierId); return (isLow && sp && sp.phone) ? `<a href="tel:${escapeAttr(sp.phone.replace(/[^0-9+]/g,""))}" style="display:inline-block;margin-top:4px;font-size:11px;color:var(--green);text-decoration:none;">📞 ສັ່ງເພີ່ມ: ${escapeAttr(sp.name)}</a>` : ""; })()}
           ${(cost>0||sell>0)?`
           <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;margin-top:4px;padding:6px 0 2px;border-top:1px solid var(--line);">
             ${cost>0?`<span style="color:var(--text-faint);">ຕົ້ນທຶນ: <b>${fmtKip(cost)}</b></span>`:""}
@@ -710,6 +930,7 @@ function renderStock(){
         </div>`).join("");
     }
   }
+  renderRecipes();
 }
 
 function populateLinkedMenuSelect(selected){
@@ -729,6 +950,10 @@ App.saveStockItem = function(){
   const category  = document.getElementById("siCategory").value;
   const qty       = Math.max(0, parseInt(document.getElementById("siQty").value)||0);
   const unit      = document.getElementById("siUnit").value.trim();
+  const packUnit  = document.getElementById("siPackUnit").value.trim();
+  const packSizeRaw = Math.max(0, parseInt(document.getElementById("siPackSize").value)||0);
+  const packSize  = (packUnit && packSizeRaw>=2) ? packSizeRaw : 0;
+  const packPrice = packSize ? Math.max(0, parseInt(document.getElementById("siPackPrice").value)||0) : 0;
   const minQty    = Math.max(0, parseInt(document.getElementById("siMin").value)||0);
   const expiry    = document.getElementById("siExpiry").value || "";
   const linkedMenu= document.getElementById("siLinkedMenu").value;
@@ -742,12 +967,13 @@ App.saveStockItem = function(){
     const oldQty = s.qty;
     s.name=name; s.barcode=barcode; s.category=category; s.qty=qty; s.unit=unit; s.minQty=minQty; s.expiry=expiry;
     s.linkedMenu=linkedMenu; s.costPrice=costPrice; s.sellPrice=sellPrice;
+    s.packUnit=packUnit; s.packSize=packSize; s.packPrice=packPrice;
     if(qty !== oldQty){
       state.stockLog.unshift({ts:Date.now(), itemId:s.id, itemName:name, change:qty-oldQty, reason:"ແກ້ໄຂຂໍ້ມູນ"});
     }
     toast("ແກ້ໄຂສີນຄ້າແລ້ວ");
   } else {
-    const newItem = {id:uid(), name, barcode, category, qty, unit, minQty, expiry, linkedMenu, costPrice, sellPrice};
+    const newItem = {id:uid(), name, barcode, category, qty, unit, minQty, expiry, linkedMenu, costPrice, sellPrice, packUnit, packSize, packPrice};
     state.stockItems.push(newItem);
     if(qty>0) state.stockLog.unshift({ts:Date.now(), itemId:newItem.id, itemName:name, change:qty, reason:"ສ້າງໃໝ່"});
     toast("ເພີ່ມສີນຄ້າແລ້ວ");
@@ -757,7 +983,10 @@ App.saveStockItem = function(){
 };
 
 App.removeStockItem = function(idx){
-  openConfirm("ລຶບສີນຄ້າ", `ຕ້ອງການລຶບ "${state.stockItems[idx].name}" ອອກຈາກ Stock ແທ້ບໍ?`, ()=>{
+  const _it = state.stockItems[idx];
+  const _usedIn = (state.recipes||[]).filter(r=>(r.ingredients||[]).some(g=>g.itemId===_it.id)).map(r=>r.name);
+  const _warn = _usedIn.length ? `\n⚠ ສີນຄ້ານີ້ຖືກໃຊ້ໃນເມນູ: ${_usedIn.join(", ")}` : "";
+  openConfirm("ລຶບສີນຄ້າ", `ຕ້ອງການລຶບ "${_it.name}" ອອກຈາກ Stock ແທ້ບໍ?${_warn}`, ()=>{
     state.stockItems.splice(idx,1);
     saveState();
     renderStock();
@@ -773,6 +1002,9 @@ App.openAddStockItemModal = function(){
   document.getElementById("siCategory").value = "ອື່ນໆ";
   document.getElementById("siQty").value = "0";
   document.getElementById("siUnit").value = "";
+  document.getElementById("siPackUnit").value = "";
+  document.getElementById("siPackSize").value = "";
+  document.getElementById("siPackPrice").value = "";
   document.getElementById("siMin").value = "5";
   document.getElementById("siExpiry").value = "";
   document.getElementById("siCostPrice").value = "0";
@@ -792,6 +1024,9 @@ App.openEditStockItem = function(idx){
   document.getElementById("siCategory").value  = s.category||"ອື່ນໆ";
   document.getElementById("siQty").value       = s.qty;
   document.getElementById("siUnit").value      = s.unit||"";
+  document.getElementById("siPackUnit").value  = s.packUnit||"";
+  document.getElementById("siPackSize").value  = s.packSize||"";
+  document.getElementById("siPackPrice").value = s.packPrice||"";
   document.getElementById("siMin").value       = s.minQty||0;
   document.getElementById("siExpiry").value    = s.expiry||"";
   document.getElementById("siCostPrice").value = s.costPrice||0;
@@ -801,35 +1036,798 @@ App.openEditStockItem = function(idx){
   document.getElementById("stockItemModal").classList.add("open");
 };
 
+const LOSS_REASONS = {
+  broken:  "ສີນຄ້າແຕກ/ຊຳລຸດ",
+  expired: "ໝົດອາຍຸ",
+  spilled: "ເຮັດຫຼົ່ນ/ເຮັດເສຍ",
+  staff:   "ເອົາໃຫ້ພະນັກງານດື່ມ/ກິນ",
+  stolen:  "ຖືກລັກ/ຫາຍ",
+  promo:   "ແຖມ/ຊິມ",
+  other:   "ອື່ນໆ",
+  audit:   "ຂາດຈາກການກວດນັບ"
+};
+
+App.onAdjTypeChange = function(){
+  const t = document.getElementById("stockAdjType").value;
+  document.getElementById("stockAdjReasonWrap").style.display = (t==="remove") ? "block" : "none";
+};
+
 App.openStockAdj = function(idx){
   const s = state.stockItems[idx];
   if(!s) return;
+  const p = packInfo(s);
   document.getElementById("stockAdjIdx").value = idx;
   document.getElementById("stockAdjTitle").textContent = `ປັບ Stock — ${s.name}`;
-  document.getElementById("stockAdjCurrent").textContent = `ຈຳນວນປັດຈຸບັນ: ${s.qty} ${s.unit||''}`;
+  document.getElementById("stockAdjCurrent").textContent = `ຈຳນວນປັດຈຸບັນ: ${s.qty} ${s.unit||''}` + (p ? ` (= ${fmtPackBreakdown(s)})` : "");
   document.getElementById("stockAdjType").value = "add";
   document.getElementById("stockAdjQty").value = "1";
   document.getElementById("stockAdjNote").value = "";
+  document.getElementById("stockAdjReason").innerHTML = '<option value="">— ເລືອກເຫດຜົນ —</option>' +
+    Object.keys(LOSS_REASONS).filter(k=>k!=="audit").map(k=>`<option value="${k}">${LOSS_REASONS[k]}</option>`).join("");
+  App.onAdjTypeChange();
+  const wrap = document.getElementById("stockAdjUnitWrap");
+  const sel  = document.getElementById("stockAdjUnit");
+  if(p){
+    sel.innerHTML = `<option value="1">${escapeAttr(s.unit||"ໜ່ວຍຍ່ອຍ")}</option><option value="pack">${escapeAttr(p.unit)} (1 ${escapeAttr(p.unit)} = ${p.size} ${escapeAttr(s.unit||"")})</option>`;
+    sel.value = "pack";
+    wrap.style.display = "block";
+  } else {
+    sel.innerHTML = "";
+    wrap.style.display = "none";
+  }
   document.getElementById("stockAdjModal").classList.add("open");
 };
 
 App.confirmStockAdj = function(){
   const idx  = parseInt(document.getElementById("stockAdjIdx").value);
   const type = document.getElementById("stockAdjType").value;
-  const qty  = Math.abs(parseInt(document.getElementById("stockAdjQty").value)||0);
+  const rawQty = Math.abs(parseInt(document.getElementById("stockAdjQty").value)||0);
   const note = document.getElementById("stockAdjNote").value.trim();
-  if(!qty){ toast("ກະລຸນາໃສ່ຈຳນວນ"); return; }
+  if(!rawQty){ toast("ກະລຸນາໃສ່ຈຳນວນ"); return; }
   const s = state.stockItems[idx];
   if(!s) return;
-  let change = 0;
-  if(type === "add")    { s.qty += qty; change = qty; }
-  else if(type === "remove"){ s.qty = Math.max(0, s.qty - qty); change = -(Math.min(qty, s.qty+qty)); }
-  else if(type === "set")   { change = qty - s.qty; s.qty = qty; }
-  state.stockLog.unshift({ts:Date.now(), itemId:s.id, itemName:s.name, change, reason: note||type});
+  const lossKey = document.getElementById("stockAdjReason").value;
+  if(type === "remove" && !lossKey){ toast("ກະລຸນາເລືອກເຫດຜົນການຕັດ Stock"); return; }
+  const p = packInfo(s);
+  const usePack = !!(p && document.getElementById("stockAdjUnit").value === "pack");
+  const qty = usePack ? rawQty * p.size : rawQty;
+  const before = s.qty;
+  let change = 0, reason = "", extra = {};
+  if(type === "add"){ s.qty = before + qty; change = qty; reason = note || "ຮັບສີນຄ້າເຂົ້າ"; }
+  else if(type === "remove"){
+    const removed = Math.min(qty, before);
+    s.qty = before - removed; change = -removed;
+    reason = LOSS_REASONS[lossKey] + (note ? ` — ${note}` : "");
+    extra = {lossType: lossKey, lossValue: removed * (s.costPrice||0)};
+  }
+  else if(type === "set"){ change = qty - before; s.qty = qty; reason = note || "ຕັ້ງຄ່າໃໝ່"; }
+  if(usePack) reason += ` (${rawQty} ${p.unit})`;
+  state.stockLog.unshift(Object.assign({ts:Date.now(), itemId:s.id, itemName:s.name, change, reason}, extra));
   saveState();
   renderStock();
   App.closeModal("stockAdjModal");
-  toast(`ອັບເດດ Stock ${s.name} → ${s.qty} ${s.unit||''}`);
+  toast(`ອັບເດດ Stock ${s.name} → ${s.qty} ${s.unit||''}` + (p ? ` (${fmtPackBreakdown(s)})` : ""));
+};
+
+/* ---------------- RECIPE / COMPOSITE MENU ---------------- */
+let _rcRows = [];
+
+function renderRecipes(){
+  const el = document.getElementById("recipeList");
+  if(!el) return;
+  const recipes = state.recipes || [];
+  if(recipes.length === 0){
+    el.innerHTML = '<div style="font-size:12px;color:var(--text-faint);text-align:center;padding:8px 0;">ຍັງບໍ່ມີເມນູປະສົມ</div>';
+    return;
+  }
+  el.innerHTML = recipes.map(r=>{
+    const parts = (r.ingredients||[]).map(g=>{
+      const s = findStockById(g.itemId);
+      return s ? `${escapeAttr(s.name)} ×${g.qty}${escapeAttr(s.unit||"")}` : `<span style="color:#fb7185;">(ລຶບແລ້ວ)</span>`;
+    }).join(", ");
+    const portions = usesMaxPortions(recipeUses(r), null);
+    const cost = recipeCost(r);
+    const price = r.price||0;
+    const margin = (cost>0 && price>0) ? Math.round((price-cost)/price*100) : null;
+    return `
+      <div style="background:var(--panel-2); border-radius:10px; padding:10px 12px;">
+        <div style="display:flex; justify-content:space-between; gap:8px; font-size:14px; font-weight:700;">
+          <span>🍹 ${escapeAttr(r.name)}</span><span>${fmtKip(price)}</span>
+        </div>
+        <div style="font-size:11px; color:var(--text-faint); margin:4px 0;">${parts}</div>
+        <div style="font-size:11px; display:flex; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+          <span style="color:${portions>0?'var(--green)':'#fb7185'};">ຂາຍໄດ້ອີກ: <b>${portions}</b></span>
+          ${cost>0?`<span style="color:var(--text-faint);">ຕົ້ນທຶນ: <b>${fmtKip(cost)}</b></span>`:""}
+          ${margin!==null?`<span style="color:var(--amber);font-weight:700;">📈 ${margin}%</span>`:""}
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost btn-sm" onclick="App.openRecipeModal('${r.id}')">✏️ ແກ້ໄຂ</button>
+          <button class="btn btn-danger btn-sm" onclick="App.removeRecipe('${r.id}')">🗑</button>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+App.openRecipeModal = function(id){
+  const r = id ? (state.recipes||[]).find(x=>x.id===id) : null;
+  document.getElementById("rcEditId").value = r ? r.id : "";
+  document.getElementById("rcModalTitle").textContent = r ? "ແກ້ໄຂເມນູປະສົມ" : "ເພີ່ມເມນູປະສົມ";
+  document.getElementById("rcName").value  = r ? r.name : "";
+  document.getElementById("rcPrice").value = r ? (r.price||0) : 0;
+  _rcRows = r ? JSON.parse(JSON.stringify(r.ingredients||[])) : [{itemId:"", qty:1}];
+  if(_rcRows.length === 0) _rcRows = [{itemId:"", qty:1}];
+  App.renderRecipeRows();
+  document.getElementById("recipeModal").classList.add("open");
+};
+
+App.renderRecipeRows = function(){
+  const wrap = document.getElementById("rcRows");
+  if(!wrap) return;
+  wrap.innerHTML = _rcRows.map((g,i)=>{
+    const s = findStockById(g.itemId);
+    const opts = '<option value="">— ເລືອກສີນຄ້າ —</option>' + state.stockItems.map(x=>
+      `<option value="${escapeAttr(x.id)}" ${x.id===g.itemId?"selected":""}>${escapeAttr(x.name)}</option>`).join("");
+    return `
+      <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
+        <select style="flex:1; min-width:0;" onchange="App.updateRecipeRow(${i},'itemId',this.value)">${opts}</select>
+        <input type="number" min="1" value="${g.qty||1}" style="width:70px;" oninput="App.updateRecipeRow(${i},'qty',this.value)">
+        <span style="font-size:11px; color:var(--text-faint); min-width:30px;">${escapeAttr(s?(s.unit||""):"")}</span>
+        <button type="button" class="close-x" onclick="App.removeRecipeRow(${i})">✕</button>
+      </div>`;
+  }).join("");
+  App._updateRecipeCost();
+};
+
+App.addRecipeRow = function(){ _rcRows.push({itemId:"", qty:1}); App.renderRecipeRows(); };
+App.removeRecipeRow = function(i){ _rcRows.splice(i,1); if(_rcRows.length===0) _rcRows.push({itemId:"", qty:1}); App.renderRecipeRows(); };
+App.updateRecipeRow = function(i, field, val){
+  if(!_rcRows[i]) return;
+  if(field === "itemId"){ _rcRows[i].itemId = val; App.renderRecipeRows(); }
+  else { _rcRows[i].qty = Math.max(0, parseInt(val)||0); App._updateRecipeCost(); }
+};
+
+App._updateRecipeCost = function(){
+  const el = document.getElementById("rcCostPreview");
+  if(!el) return;
+  const cost = _rcRows.reduce((sum,g)=>{ const s=findStockById(g.itemId); return sum + (s?(s.costPrice||0)*(g.qty||0):0); },0);
+  const price = Math.max(0, parseInt(document.getElementById("rcPrice")?.value)||0);
+  if(cost<=0){ el.textContent = "ຕົ້ນທຶນ: — (ໃສ່ຕົ້ນທຶນໃນສີນຄ້າແຕ່ລະຢ່າງເພື່ອຄິດກຳໄລ)"; return; }
+  const profit = price - cost;
+  el.innerHTML = `ຕົ້ນທຶນ: <b>${fmtKip(cost)}</b>` + (price>0 ? ` · ກຳໄລ: <b style="color:${profit>=0?'var(--green)':'#fb7185'};">${fmtKip(profit)}</b> (${Math.round(profit/price*100)}%)` : "");
+};
+
+App.saveRecipe = function(){
+  const name  = document.getElementById("rcName").value.trim();
+  const price = Math.max(0, parseInt(document.getElementById("rcPrice").value)||0);
+  if(!name){ toast("ກະລຸນາໃສ່ຊື່ເມນູ"); return; }
+  const merged = {};
+  _rcRows.forEach(g=>{ if(g.itemId && g.qty>0) merged[g.itemId] = (merged[g.itemId]||0) + g.qty; });
+  const ingredients = Object.keys(merged).map(k=>({itemId:k, qty:merged[k]}));
+  if(ingredients.length === 0){ toast("ກະລຸນາເພີ່ມສ່ວນປະກອບຢ່າງໜ້ອຍ 1 ຢ່າງ"); return; }
+  if(!Array.isArray(state.recipes)) state.recipes = [];
+  const editId = document.getElementById("rcEditId").value;
+  if(editId){
+    const r = state.recipes.find(x=>x.id===editId);
+    if(r){ r.name=name; r.price=price; r.ingredients=ingredients; }
+    toast("ແກ້ໄຂເມນູແລ້ວ");
+  } else {
+    state.recipes.push({id:uid(), name, price, ingredients});
+    toast("ເພີ່ມເມນູແລ້ວ");
+  }
+  saveState(); renderRecipes();
+  App.closeModal("recipeModal");
+};
+
+App.removeRecipe = function(id){
+  const r = (state.recipes||[]).find(x=>x.id===id);
+  if(!r) return;
+  openConfirm("ລຶບເມນູປະສົມ", `ຕ້ອງການລຶບເມນູ "${r.name}" ແທ້ບໍ? (Stock ບໍ່ໄດ້ຮັບຜົນກະທົບ)`, ()=>{
+    state.recipes = state.recipes.filter(x=>x.id!==id);
+    saveState(); renderRecipes();
+    toast("ລຶບເມນູແລ້ວ");
+  });
+};
+
+/* ---------------- NOTIFICATIONS (Telegram) ---------------- */
+var _alertBusy = false;
+var _alertFailAt = 0;
+
+function loadNotifyCfg(){
+  const def = {token:"", chatId:"", enabled:false, expiry:true};
+  try{ return Object.assign(def, JSON.parse(localStorage.getItem("bk_notify_v1")||"{}")); }
+  catch(e){ return def; }
+}
+function saveNotifyCfg(c){
+  try{ localStorage.setItem("bk_notify_v1", JSON.stringify(c)); }catch(e){}
+}
+function notifyCredsOk(c){
+  return /^\d+:[A-Za-z0-9_-]+$/.test(c.token||"") && String(c.chatId||"").trim() !== "";
+}
+
+async function tgSend(cfg, text){
+  const res = await fetch(`https://api.telegram.org/bot${cfg.token}/sendMessage`, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({chat_id: String(cfg.chatId).trim(), text: text.slice(0,4000)})
+  });
+  let data = {};
+  try{ data = await res.json(); }catch(e){}
+  if(!res.ok || !data.ok) throw new Error(data.description || ("HTTP "+res.status));
+}
+
+function collectAlerts(cfg){
+  const groups = {out:[], low:[], exp:[]};
+  const keys = {};
+  (state.stockItems||[]).forEach(s=>{
+    if(s.minQty > 0 && s.qty <= 0){ groups.out.push(s); keys[s.id+":out"] = 1; }
+    else if(s.minQty > 0 && s.qty <= s.minQty){ groups.low.push(s); keys[s.id+":low"] = 1; }
+    if(cfg.expiry && s.qty > 0){
+      const d = daysUntilExpiry(s);
+      if(d !== null && d <= 7){ groups.exp.push(s); keys[s.id+":exp:"+s.expiry] = 1; }
+    }
+  });
+  return {groups, keys};
+}
+
+function buildAlertText(g){
+  const lines = ["🏪 BK Snooker — ແຈ້ງເຕືອນ Stock"];
+  const sup = s=>{
+    const sp = (state.suppliers||[]).find(x=>x.id===s.supplierId);
+    return sp ? ` · ສັ່ງ: ${sp.name}${sp.phone?" "+sp.phone:""}` : "";
+  };
+  if(g.out.length){ lines.push("", "🚫 ໝົດແລ້ວ:"); g.out.slice(0,30).forEach(s=>lines.push(`• ${s.name}${sup(s)}`)); }
+  if(g.low.length){ lines.push("", "⚠ ໃກ້ໝົດ:"); g.low.slice(0,30).forEach(s=>lines.push(`• ${s.name} — ເຫຼືອ ${s.qty} ${s.unit||""} (ຂັ້ນຕ່ຳ ${s.minQty})${sup(s)}`)); }
+  if(g.exp.length){
+    lines.push("", "⏰ ໃກ້/ໝົດອາຍຸ:");
+    g.exp.slice(0,30).forEach(s=>{
+      const d = daysUntilExpiry(s);
+      const t = d < 0 ? `ໝົດອາຍຸແລ້ວ ${Math.abs(d)} ມື້` : d === 0 ? "ໝົດອາຍຸມື້ນີ້" : `ອີກ ${d} ມື້`;
+      lines.push(`• ${s.name} — ${t} (${s.expiry})`);
+    });
+  }
+  return lines.join("\n");
+}
+
+async function checkLowStockAlerts(){
+  const cfg = loadNotifyCfg();
+  if(!cfg.enabled || !notifyCredsOk(cfg) || _alertBusy) return;
+  if(Date.now() - _alertFailAt < 60000) return;
+  if(!state.lowAlerted || typeof state.lowAlerted !== "object") state.lowAlerted = {};
+  const prev = state.lowAlerted;
+  const {groups, keys} = collectAlerts(cfg);
+  const fresh = {
+    out: groups.out.filter(s=>!prev[s.id+":out"]),
+    low: groups.low.filter(s=>!prev[s.id+":low"]),
+    exp: groups.exp.filter(s=>!prev[s.id+":exp:"+s.expiry])
+  };
+  const hasNew = fresh.out.length + fresh.low.length + fresh.exp.length > 0;
+  if(!hasNew){
+    // ລ້າງລາຍການທີ່ກັບມາປົກກະຕິແລ້ວ ເພື່ອໃຫ້ແຈ້ງເຕືອນໄດ້ອີກຄັ້ງຖ້າຕ່ຳອີກ
+    if(Object.keys(prev).sort().join("|") !== Object.keys(keys).sort().join("|")){
+      const next = {}; Object.keys(keys).forEach(k=>{ next[k] = prev[k] || Date.now(); });
+      state.lowAlerted = next;
+      saveState();
+    }
+    return;
+  }
+  _alertBusy = true;
+  try{
+    await tgSend(cfg, buildAlertText(fresh));
+    const next = {}; Object.keys(keys).forEach(k=>{ next[k] = prev[k] || Date.now(); });
+    state.lowAlerted = next;
+    saveState();
+  }catch(e){
+    _alertFailAt = Date.now();
+    toast("ສົ່ງແຈ້ງເຕືອນ Telegram ບໍ່ສຳເລັດ: " + e.message);
+  }finally{
+    _alertBusy = false;
+  }
+}
+
+function readNotifyForm(){
+  return {
+    token:   (document.getElementById("tgToken").value||"").trim(),
+    chatId:  (document.getElementById("tgChatId").value||"").trim(),
+    enabled: !!document.getElementById("tgEnabled").checked,
+    expiry:  !!document.getElementById("tgExpiry").checked
+  };
+}
+
+App.renderNotifySettings = function(){
+  const c = loadNotifyCfg();
+  const set = (id,v)=>{ const e=document.getElementById(id); if(e) e.value = v; };
+  set("tgToken", c.token); set("tgChatId", c.chatId);
+  const en = document.getElementById("tgEnabled"); if(en) en.checked = !!c.enabled;
+  const ex = document.getElementById("tgExpiry");  if(ex) ex.checked = c.expiry !== false;
+};
+
+App.saveNotifySettings = function(){
+  const c = readNotifyForm();
+  if(c.enabled && !notifyCredsOk(c)){ toast("Bot Token ຫຼື Chat ID ບໍ່ຖືກຮູບແບບ"); return; }
+  saveNotifyCfg(c);
+  _alertFailAt = 0;
+  toast(c.enabled ? "ບັນທຶກແລ້ວ — ເປີດແຈ້ງເຕືອນອັດຕະໂນມັດ" : "ບັນທຶກການຕັ້ງຄ່າແລ້ວ");
+  if(c.enabled) checkLowStockAlerts();
+};
+
+App.testNotify = async function(){
+  const c = readNotifyForm();
+  if(!notifyCredsOk(c)){ toast("ກະລຸນາໃສ່ Bot Token ແລະ Chat ID ໃຫ້ຖືກຕ້ອງ"); return; }
+  try{
+    await tgSend(c, "✅ BK Snooker: ທົດສອບການແຈ້ງເຕືອນສຳເລັດ");
+    toast("ສົ່ງຂໍ້ຄວາມທົດສອບແລ້ວ — ກວດເບິ່ງ Telegram");
+  }catch(e){ toast("ສົ່ງບໍ່ສຳເລັດ: " + e.message); }
+};
+
+App.sendStockSummaryNow = async function(){
+  const c = readNotifyForm();
+  if(!notifyCredsOk(c)){ toast("ກະລຸນາໃສ່ Bot Token ແລະ Chat ID ໃຫ້ຖືກຕ້ອງ"); return; }
+  const {groups} = collectAlerts(c);
+  if(groups.out.length + groups.low.length + groups.exp.length === 0){ toast("ບໍ່ມີສີນຄ້າໃກ້ໝົດ ຫຼື ໃກ້ໝົດອາຍຸ"); return; }
+  try{
+    await tgSend(c, buildAlertText(groups));
+    toast("ສົ່ງສະຫຼຸບ Stock ແລ້ວ");
+  }catch(e){ toast("ສົ່ງບໍ່ສຳເລັດ: " + e.message); }
+};
+
+/* ---------------- SUPPLIERS & GRN (ຮັບສີນຄ້າເຂົ້າ) ---------------- */
+let _grnRows = [{itemId:"", unit:"1", qty:"", cost:""}];
+
+function grnMult(row){
+  const p = packInfo(findStockById(row.itemId));
+  return (row.unit === "pack" && p) ? p.size : 1;
+}
+function grnDefaultCost(row){
+  const s = findStockById(row.itemId);
+  return (s && s.costPrice > 0) ? String(s.costPrice * grnMult(row)) : "";
+}
+function grnLineTotal(row){ return (parseInt(row.qty)||0) * (parseFloat(row.cost)||0); }
+function grnSumTotal(){ return _grnRows.reduce((sum,r)=>sum+grnLineTotal(r), 0); }
+
+App.renderGrnRows = function(){
+  const wrap = document.getElementById("grnRows");
+  if(!wrap) return;
+  wrap.innerHTML = _grnRows.map((g,i)=>{
+    const s = findStockById(g.itemId);
+    const p = packInfo(s);
+    const opts = '<option value="">— ເລືອກສີນຄ້າ —</option>' + state.stockItems.map(x=>
+      `<option value="${escapeAttr(x.id)}" ${x.id===g.itemId?"selected":""}>${escapeAttr(x.name)}</option>`).join("");
+    const unitCtl = p
+      ? `<select style="width:auto; flex:none;" onchange="App.updateGrnRow(${i},'unit',this.value)">
+           <option value="1" ${g.unit!=="pack"?"selected":""}>${escapeAttr(s.unit||"ໜ່ວຍ")}</option>
+           <option value="pack" ${g.unit==="pack"?"selected":""}>${escapeAttr(p.unit)} (=${p.size})</option>
+         </select>`
+      : `<span style="font-size:12px; color:var(--text-faint);">${escapeAttr(s?(s.unit||""):"")}</span>`;
+    return `
+      <div style="background:var(--panel-2); border-radius:10px; padding:8px 10px; margin-bottom:8px;">
+        <div style="display:flex; gap:6px; margin-bottom:6px;">
+          <select style="flex:1; min-width:0;" onchange="App.updateGrnRow(${i},'itemId',this.value)">${opts}</select>
+          <button type="button" class="close-x" onclick="App.removeGrnRow(${i})">✕</button>
+        </div>
+        <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+          <input type="number" min="1" placeholder="ຈຳນວນ" value="${g.qty}" style="width:80px;" oninput="App.updateGrnRow(${i},'qty',this.value)">
+          ${unitCtl}
+          <input type="number" min="0" placeholder="ລາຄາຊື້/ໜ່ວຍ" value="${g.cost}" style="width:120px;" oninput="App.updateGrnRow(${i},'cost',this.value)">
+          <span id="grnLine_${i}" style="margin-left:auto; font-size:12px; font-weight:700;">${fmtKip(grnLineTotal(g))}</span>
+        </div>
+      </div>`;
+  }).join("");
+  App._updateGrnTotal();
+};
+
+App._updateGrnTotal = function(){
+  const el = document.getElementById("grnTotal");
+  if(el) el.textContent = fmtKip(grnSumTotal());
+};
+
+App.addGrnRow = function(){ _grnRows.push({itemId:"", unit:"1", qty:"", cost:""}); App.renderGrnRows(); };
+App.removeGrnRow = function(i){
+  _grnRows.splice(i,1);
+  if(_grnRows.length === 0) _grnRows.push({itemId:"", unit:"1", qty:"", cost:""});
+  App.renderGrnRows();
+};
+App.updateGrnRow = function(i, field, val){
+  const r = _grnRows[i];
+  if(!r) return;
+  if(field === "itemId"){
+    r.itemId = val; r.unit = "1"; r.cost = grnDefaultCost(r);
+    App.renderGrnRows();
+  } else if(field === "unit"){
+    const oldMult = grnMult(r);
+    r.unit = val;
+    const newMult = grnMult(r);
+    if(r.cost !== "" && !isNaN(parseFloat(r.cost))) r.cost = String(Math.round(parseFloat(r.cost) / oldMult * newMult));
+    App.renderGrnRows();
+  } else {
+    r[field] = val;
+    const line = document.getElementById("grnLine_"+i);
+    if(line) line.textContent = fmtKip(grnLineTotal(r));
+    App._updateGrnTotal();
+  }
+};
+
+App.addLowStockToGrn = function(){
+  const low = state.stockItems.filter(s=>s.qty <= s.minQty && !_grnRows.some(r=>r.itemId===s.id));
+  if(low.length === 0){ toast("ບໍ່ມີສີນຄ້າໃກ້ໝົດທີ່ຍັງບໍ່ໄດ້ເພີ່ມ"); return; }
+  _grnRows = _grnRows.filter(r=>r.itemId);
+  low.forEach(s=>{ const r={itemId:s.id, unit:"1", qty:"", cost:""}; r.cost = grnDefaultCost(r); _grnRows.push(r); });
+  App.renderGrnRows();
+  toast(`ເພີ່ມ ${low.length} ລາຍການທີ່ໃກ້ໝົດ — ໃສ່ຈຳນວນທີ່ຮັບ`);
+};
+
+function resetGrnForm(){
+  _grnRows = [{itemId:"", unit:"1", qty:"", cost:""}];
+  ["grnBillNo","grnNote"].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=""; });
+  const d = document.getElementById("grnDate"); if(d) d.value = ymd(new Date());
+  const sel = document.getElementById("grnSupplier"); if(sel) sel.value = "";
+  App.renderGrnRows();
+}
+
+App.saveGrn = function(){
+  const rows = _grnRows.filter(r=>r.itemId && (parseInt(r.qty)||0) > 0);
+  if(rows.length === 0){ toast("ກະລຸນາເພີ່ມສີນຄ້າ ແລະຈຳນວນຢ່າງໜ້ອຍ 1 ລາຍການ"); return; }
+  const supplierId = document.getElementById("grnSupplier").value;
+  const sup = (state.suppliers||[]).find(x=>x.id===supplierId);
+  const billNo = document.getElementById("grnBillNo").value.trim();
+  const date = document.getElementById("grnDate").value || ymd(new Date());
+  const note = document.getElementById("grnNote").value.trim();
+  const updateCost = document.getElementById("grnUpdateCost").checked;
+
+  const doSave = ()=>{
+    const grnId = uid();
+    const items = [];
+    let total = 0;
+    rows.forEach(r=>{
+      const s = findStockById(r.itemId);
+      if(!s) return;
+      const p = packInfo(s);
+      const mult = grnMult(r);
+      const qtyIn = parseInt(r.qty);
+      const base = qtyIn * mult;
+      const cost = parseFloat(r.cost)||0;
+      const lineTotal = qtyIn * cost;
+      s.qty += base;
+      if(updateCost && cost > 0) s.costPrice = Math.round(cost / mult);
+      if(sup) s.supplierId = sup.id;
+      const unitLabel = mult > 1 ? p.unit : (s.unit||"");
+      const reason = `ຮັບເຂົ້າ${billNo?` ບິນ ${billNo}`:""}${sup?` (${sup.name})`:""}${mult>1?` · ${qtyIn} ${p.unit}`:""}`;
+      state.stockLog.unshift({ts:Date.now(), itemId:s.id, itemName:s.name, change:base, reason, grnId});
+      items.push({itemId:s.id, name:s.name, unit:s.unit||"", inputQty:qtyIn, inputUnit:unitLabel, baseQty:base, cost, lineTotal});
+      total += lineTotal;
+    });
+    if(!Array.isArray(state.grns)) state.grns = [];
+    state.grns.unshift({id:grnId, ts:Date.now(), date, billNo, supplierId:sup?sup.id:"", supplierName:sup?sup.name:"", items, total, note});
+    saveState();
+    renderStock();
+    resetGrnForm();
+    App.renderSupplierList();
+    App.renderGrnHistory();
+    toast(`ຮັບເຂົ້າແລ້ວ ${items.length} ລາຍການ — ລວມ ${fmtKip(total)}`);
+  };
+
+  const dup = billNo && (state.grns||[]).some(g=>g.billNo===billNo && (g.supplierId||"")===(sup?sup.id:""));
+  if(dup) openConfirm("ເລກທີບິນຊ້ຳ", `ບິນເລກທີ "${billNo}" ຂອງຜູ້ສະໜອງນີ້ເຄີຍບັນທຶກແລ້ວ. ບັນທຶກຊ້ຳ (Stock ຈະເພີ່ມອີກຄັ້ງ) ບໍ?`, doSave);
+  else doSave();
+};
+
+/* ---- suppliers ---- */
+App.renderSupplierSelect = function(){
+  const sel = document.getElementById("grnSupplier");
+  if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— ບໍ່ລະບຸຜູ້ສະໜອງ —</option>' +
+    (state.suppliers||[]).map(x=>`<option value="${escapeAttr(x.id)}">${escapeAttr(x.name)}</option>`).join("");
+  sel.value = (state.suppliers||[]).some(x=>x.id===cur) ? cur : "";
+};
+
+App.renderSupplierList = function(){
+  const el = document.getElementById("supplierList");
+  if(!el) return;
+  const list = state.suppliers || [];
+  if(list.length === 0){
+    el.innerHTML = '<div style="font-size:12px;color:var(--text-faint);text-align:center;padding:8px 0;">ຍັງບໍ່ມີຜູ້ສະໜອງ</div>';
+    return;
+  }
+  el.innerHTML = list.map(x=>{
+    const gs = (state.grns||[]).filter(g=>g.supplierId===x.id);
+    const sum = gs.reduce((t,g)=>t+(g.total||0),0);
+    const tel = (x.phone||"").replace(/[^0-9+]/g,"");
+    return `
+      <div style="background:var(--panel-2); border-radius:10px; padding:10px 12px;">
+        <div style="font-size:14px; font-weight:700;">🏢 ${escapeAttr(x.name)}</div>
+        ${x.phone?`<a href="tel:${escapeAttr(tel)}" style="display:inline-block; font-size:13px; color:var(--green); text-decoration:none; margin-top:3px;">📞 ${escapeAttr(x.phone)}</a>`:""}
+        ${x.products?`<div style="font-size:12px; color:var(--text-dim); margin-top:3px;">📦 ${escapeAttr(x.products)}</div>`:""}
+        ${x.note?`<div style="font-size:12px; color:var(--text-faint); margin-top:2px;">📎 ${escapeAttr(x.note)}</div>`:""}
+        <div style="font-size:11px; color:var(--text-faint); margin:6px 0 8px;">ຮັບເຂົ້າແລ້ວ ${gs.length} ຄັ້ງ${sum>0?` · ລວມ ${fmtKip(sum)}`:""}</div>
+        <div class="btn-row">
+          <button class="btn btn-ghost btn-sm" onclick="App.openSupplierModal('${x.id}')">✏️ ແກ້ໄຂ</button>
+          <button class="btn btn-danger btn-sm" onclick="App.removeSupplier('${x.id}')">🗑</button>
+        </div>
+      </div>`;
+  }).join("");
+};
+
+App.openSupplierModal = function(id){
+  const x = id ? (state.suppliers||[]).find(v=>v.id===id) : null;
+  document.getElementById("supEditId").value = x ? x.id : "";
+  document.getElementById("supModalTitle").textContent = x ? "ແກ້ໄຂຜູ້ສະໜອງ" : "ເພີ່ມຜູ້ສະໜອງ";
+  document.getElementById("supName").value     = x ? x.name : "";
+  document.getElementById("supPhone").value    = x ? (x.phone||"") : "";
+  document.getElementById("supProducts").value = x ? (x.products||"") : "";
+  document.getElementById("supNote").value     = x ? (x.note||"") : "";
+  document.getElementById("supplierModal").classList.add("open");
+};
+
+App.saveSupplier = function(){
+  const name = document.getElementById("supName").value.trim();
+  if(!name){ toast("ກະລຸນາໃສ່ຊື່ຜູ້ສະໜອງ"); return; }
+  const data = {
+    name,
+    phone:    document.getElementById("supPhone").value.trim(),
+    products: document.getElementById("supProducts").value.trim(),
+    note:     document.getElementById("supNote").value.trim()
+  };
+  if(!Array.isArray(state.suppliers)) state.suppliers = [];
+  const editId = document.getElementById("supEditId").value;
+  if(editId){
+    const x = state.suppliers.find(v=>v.id===editId);
+    if(x) Object.assign(x, data);
+    toast("ແກ້ໄຂຜູ້ສະໜອງແລ້ວ");
+  } else {
+    state.suppliers.push(Object.assign({id:uid()}, data));
+    toast("ເພີ່ມຜູ້ສະໜອງແລ້ວ");
+  }
+  saveState();
+  App.closeModal("supplierModal");
+  App.renderSupplierSelect();
+  App.renderSupplierList();
+  renderStock();
+};
+
+App.removeSupplier = function(id){
+  const x = (state.suppliers||[]).find(v=>v.id===id);
+  if(!x) return;
+  openConfirm("ລຶບຜູ້ສະໜອງ", `ຕ້ອງການລຶບ "${x.name}" ແທ້ບໍ? (ປະຫວັດຮັບເຂົ້າເກົ່າຍັງຢູ່)`, ()=>{
+    state.suppliers = state.suppliers.filter(v=>v.id!==id);
+    saveState();
+    App.renderSupplierSelect();
+    App.renderSupplierList();
+    renderStock();
+    toast("ລຶບຜູ້ສະໜອງແລ້ວ");
+  });
+};
+
+/* ---- GRN history ---- */
+App.renderGrnHistory = function(){
+  const el = document.getElementById("grnHistory");
+  if(!el) return;
+  const list = (state.grns||[]).slice(0,30);
+  if(list.length === 0){
+    el.innerHTML = '<div style="font-size:12px;color:var(--text-faint);text-align:center;padding:8px 0;">ຍັງບໍ່ມີປະຫວັດຮັບເຂົ້າ</div>';
+    return;
+  }
+  el.innerHTML = list.map(g=>{
+    const lines = g.items.map(i=>`
+      <div style="display:flex; justify-content:space-between; gap:8px; font-size:12px; padding:3px 0;">
+        <span>${escapeAttr(i.name)} <span style="color:var(--text-faint);">${i.inputQty} ${escapeAttr(i.inputUnit)}${i.cost>0?` × ${fmtKip(i.cost)}`:""}</span></span>
+        <span style="font-weight:700;">${fmtKip(i.lineTotal)}</span>
+      </div>`).join("");
+    return `
+      <details style="background:var(--panel-2); border-radius:10px; padding:10px 12px;">
+        <summary style="cursor:pointer; font-size:13px; font-weight:700;">
+          <span style="display:flex; justify-content:space-between; gap:8px;"><span>${escapeAttr(g.date)}${g.billNo?` · ${escapeAttr(g.billNo)}`:""}</span><span>${fmtKip(g.total)}</span></span>
+          <span style="display:block; font-size:11px; font-weight:500; color:var(--text-faint);">${escapeAttr(g.supplierName||"ບໍ່ລະບຸຜູ້ສະໜອງ")} · ${g.items.length} ລາຍການ</span>
+        </summary>
+        <div style="margin-top:8px; border-top:1px solid var(--line); padding-top:6px;">
+          ${lines}
+          ${g.note?`<div style="font-size:11px; color:var(--text-faint); margin-top:6px;">📎 ${escapeAttr(g.note)}</div>`:""}
+        </div>
+      </details>`;
+  }).join("");
+};
+
+App.exportGrnCsv = function(){
+  const rows = [["ວັນທີຮັບເຂົ້າ","ເລກທີບິນ","ຜູ້ສະໜອງ","ສີນຄ້າ","ຈຳນວນ","ໜ່ວຍ","ລາຄາ/ໜ່ວຍ","ລວມ","ໝາຍເຫດ"]];
+  (state.grns||[]).forEach(g=>g.items.forEach(i=>{
+    rows.push([g.date, g.billNo||"", g.supplierName||"", i.name, i.inputQty, i.inputUnit, i.cost||0, i.lineTotal||0, g.note||""]);
+  }));
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob = new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "bk-snooker-goods-received.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  toast("Export ປະຫວັດຮັບເຂົ້າແລ້ວ");
+};
+
+App.renderReceiveAll = function(){
+  const d = document.getElementById("grnDate");
+  if(d && !d.value) d.value = ymd(new Date());
+  App.renderSupplierSelect();
+  App.renderGrnRows();
+  App.renderSupplierList();
+  App.renderGrnHistory();
+};
+
+/* ---------------- STOCK AUDIT (ກວດນັບ Stock ຕົວຈິງ) ---------------- */
+let _auditCounts = {};   // { itemId: {packs:"", loose:""} }
+
+function auditActual(s){
+  const c = _auditCounts[s.id];
+  if(!c) return null;
+  const has = (c.packs!==undefined && c.packs!=="") || (c.loose!==undefined && c.loose!=="");
+  if(!has) return null;
+  const p = packInfo(s);
+  return (parseInt(c.packs)||0) * (p ? p.size : 0) + (parseInt(c.loose)||0);
+}
+
+function auditDiffHtml(s){
+  const a = auditActual(s);
+  if(a === null) return '<span style="color:var(--text-faint);">— ຍັງບໍ່ນັບ</span>';
+  const d = a - s.qty;
+  if(d === 0) return '<span style="color:var(--green);">✓ ຕົງກັນ</span>';
+  return `<span style="color:${d<0?'#fb7185':'var(--amber)'};font-weight:700;">${d>0?'+':''}${d} ${escapeAttr(s.unit||"")} (${d<0?'ຂາດ':'ເກີນ'})</span>`;
+}
+
+App.renderAuditList = function(){
+  const el = document.getElementById("auditList");
+  if(!el) return;
+  const q = (document.getElementById("auditSearch")?.value||"").trim().toLowerCase();
+  const items = state.stockItems.filter(s=> !q || s.name.toLowerCase().includes(q) || (s.barcode||"").toLowerCase().includes(q));
+  if(items.length === 0){
+    el.innerHTML = '<div style="font-size:12px;color:var(--text-faint);text-align:center;padding:10px 0;">ບໍ່ພົບສີນຄ້າ</div>';
+  } else {
+    el.innerHTML = items.map(s=>{
+      const p = packInfo(s);
+      const c = _auditCounts[s.id] || {};
+      const inp = (field, val, unitLabel)=>`
+        <div style="display:flex;align-items:center;gap:4px;">
+          <input type="number" min="0" value="${val===undefined?"":val}" placeholder="0" style="width:72px;padding:7px 8px;"
+                 oninput="App.setAuditCount('${s.id}','${field}',this.value)">
+          <span style="font-size:11px;color:var(--text-faint);">${escapeAttr(unitLabel)}</span>
+        </div>`;
+      return `
+        <div style="background:var(--panel-2); border-radius:10px; padding:10px 12px;">
+          <div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:700;">
+            <span>${escapeAttr(s.name)}</span>
+            <span style="color:var(--text-dim);font-weight:600;">ລະບົບ: ${s.qty} ${escapeAttr(s.unit||"")}</span>
+          </div>
+          ${p?`<div style="font-size:11px;color:var(--amber);">= ${escapeAttr(fmtPackBreakdown(s))}</div>`:""}
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:8px;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              ${p?inp("packs", c.packs, p.unit):""}
+              ${inp("loose", c.loose, s.unit||"ໜ່ວຍ")}
+            </div>
+            <div id="auditDiff_${s.id}" style="font-size:12px;">${auditDiffHtml(s)}</div>
+          </div>
+        </div>`;
+    }).join("");
+  }
+  App.renderAuditSummary();
+};
+
+App.setAuditCount = function(id, field, val){
+  if(!_auditCounts[id]) _auditCounts[id] = {};
+  _auditCounts[id][field] = val;
+  const s = findStockById(id);
+  const d = document.getElementById("auditDiff_"+id);
+  if(s && d) d.innerHTML = auditDiffHtml(s);
+  App.renderAuditSummary();
+};
+
+App.renderAuditSummary = function(){
+  const el = document.getElementById("auditSummary");
+  if(!el) return;
+  let counted = 0, diffCount = 0, shortVal = 0, overVal = 0;
+  state.stockItems.forEach(s=>{
+    const a = auditActual(s);
+    if(a === null) return;
+    counted++;
+    const d = a - s.qty;
+    if(d !== 0){ diffCount++; if(d<0) shortVal += -d*(s.costPrice||0); else overVal += d*(s.costPrice||0); }
+  });
+  el.innerHTML = `ນັບແລ້ວ <b>${counted}</b>/${state.stockItems.length} ລາຍການ · ມີສ່ວນຕ່າງ <b style="color:${diffCount?'var(--amber)':'var(--green)'};">${diffCount}</b>` +
+    (shortVal>0 ? ` · ມູນຄ່າຂາດ <b style="color:#fb7185;">${fmtKip(shortVal)}</b>` : "") +
+    (overVal>0 ? ` · ມູນຄ່າເກີນ <b style="color:var(--amber);">${fmtKip(overVal)}</b>` : "");
+};
+
+App.clearAudit = function(){
+  _auditCounts = {};
+  const n = document.getElementById("auditNote"); if(n) n.value = "";
+  App.renderAuditList();
+};
+
+App.saveAudit = function(){
+  const counted = state.stockItems.filter(s=>auditActual(s)!==null);
+  if(counted.length === 0){ toast("ຍັງບໍ່ໄດ້ນັບສີນຄ້າ"); return; }
+  const diffs = counted.filter(s=>auditActual(s)!==s.qty).length;
+  openConfirm("ບັນທຶກຜົນກວດນັບ", `ນັບ ${counted.length} ລາຍການ, ມີສ່ວນຕ່າງ ${diffs} ລາຍການ. Stock ຈະຖືກປັບໃຫ້ຕົງກັບຕົວຈິງ — ດຳເນີນການຕໍ່ບໍ?`, ()=>{
+    const note = (document.getElementById("auditNote")?.value||"").trim();
+    const auditId = uid();
+    const now = Date.now();
+    const items = [];
+    counted.forEach(s=>{
+      const actual = auditActual(s);
+      const system = s.qty;
+      const diff = actual - system;
+      items.push({id:s.id, name:s.name, unit:s.unit||"", system, actual, diff, cost:s.costPrice||0});
+      if(diff !== 0){
+        s.qty = actual;
+        const entry = {ts:now, itemId:s.id, itemName:s.name, change:diff, reason:`ກວດນັບ: ລະບົບ ${system} → ຕົວຈິງ ${actual}`, auditId};
+        if(diff < 0){ entry.lossType = "audit"; entry.lossValue = -diff * (s.costPrice||0); }
+        state.stockLog.unshift(entry);
+      }
+    });
+    if(!Array.isArray(state.audits)) state.audits = [];
+    state.audits.unshift({id:auditId, ts:now, note, items});
+    saveState();
+    _auditCounts = {};
+    const n = document.getElementById("auditNote"); if(n) n.value = "";
+    renderStock();
+    App.renderAuditAll();
+    toast(`ບັນທຶກການກວດນັບແລ້ວ — ມີສ່ວນຕ່າງ ${diffs} ລາຍການ`);
+  });
+};
+
+App.renderLossSummary = function(){
+  const el = document.getElementById("lossSummary");
+  if(!el) return;
+  const days = parseInt(document.getElementById("lossRange")?.value)||0;
+  let cutoff = 0;
+  if(days > 0){ const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-(days-1)); cutoff = d.getTime(); }
+  const agg = {};
+  (state.stockLog||[]).forEach(l=>{
+    if(!l.lossType || l.ts < cutoff) return;
+    const a = agg[l.lossType] || (agg[l.lossType] = {n:0, value:0});
+    a.n++; a.value += (l.lossValue||0);
+  });
+  const keys = Object.keys(agg);
+  if(keys.length === 0){
+    el.innerHTML = '<div style="font-size:12px;color:var(--text-faint);text-align:center;padding:8px 0;">ບໍ່ມີການຕັດ Stock ເສຍຫາຍໃນຊ່ວງນີ້</div>';
+    return;
+  }
+  const total = keys.reduce((s,k)=>s+agg[k].value,0);
+  el.innerHTML = keys.sort((a,b)=>agg[b].value-agg[a].value).map(k=>`
+    <div class="stock-log-row">
+      <span>${escapeAttr(LOSS_REASONS[k]||k)} <span style="color:var(--text-faint);font-size:11px;">(${agg[k].n} ຄັ້ງ)</span></span>
+      <span style="color:#fb7185;font-weight:700;">${fmtKip(agg[k].value)}</span>
+    </div>`).join("") +
+    `<div style="display:flex;justify-content:space-between;font-weight:800;margin-top:8px;"><span>ມູນຄ່າເສຍຫາຍລວມ (ຕົ້ນທຶນ)</span><span style="color:#fb7185;">${fmtKip(total)}</span></div>
+     <div style="font-size:10px;color:var(--text-faint);margin-top:4px;">ຄິດຈາກຕົ້ນທຶນຕໍ່ໜ່ວຍ — ສີນຄ້າທີ່ບໍ່ໄດ້ໃສ່ຕົ້ນທຶນຈະນັບເປັນ 0</div>`;
+};
+
+App.renderAuditHistory = function(){
+  const el = document.getElementById("auditHistory");
+  if(!el) return;
+  const audits = (state.audits||[]).slice(0,20);
+  if(audits.length === 0){
+    el.innerHTML = '<div style="font-size:12px;color:var(--text-faint);text-align:center;padding:8px 0;">ຍັງບໍ່ມີປະຫວັດການກວດນັບ</div>';
+    return;
+  }
+  el.innerHTML = audits.map(a=>{
+    const diffs = a.items.filter(i=>i.diff!==0);
+    const shortVal = diffs.filter(i=>i.diff<0).reduce((s,i)=>s+(-i.diff)*i.cost,0);
+    const lines = diffs.length ? diffs.map(i=>`
+      <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:3px 0;">
+        <span>${escapeAttr(i.name)} <span style="color:var(--text-faint);">${i.system} → ${i.actual}</span></span>
+        <span style="color:${i.diff<0?'#fb7185':'var(--amber)'};font-weight:700;">${i.diff>0?'+':''}${i.diff} ${escapeAttr(i.unit)}</span>
+      </div>`).join("") : '<div style="font-size:12px;color:var(--green);padding:3px 0;">ຕົງກັນທັງໝົດ ✓</div>';
+    return `
+      <details style="background:var(--panel-2); border-radius:10px; padding:10px 12px;">
+        <summary style="cursor:pointer; font-size:13px; font-weight:700;">
+          ${fmtDateTime(new Date(a.ts))}${a.note?` · ${escapeAttr(a.note)}`:""}
+          <span style="display:block;font-size:11px;font-weight:500;color:var(--text-faint);">ນັບ ${a.items.length} ລາຍການ · ຕ່າງ ${diffs.length}${shortVal>0?` · ຂາດ ${fmtKip(shortVal)}`:""}</span>
+        </summary>
+        <div style="margin-top:8px;border-top:1px solid var(--line);padding-top:6px;">${lines}</div>
+      </details>`;
+  }).join("");
+};
+
+App.renderAuditAll = function(){
+  App.renderAuditList();
+  App.renderLossSummary();
+  App.renderAuditHistory();
 };
 
 /* ---------------- BARCODE SCANNER (camera, via QuaggaJS) ---------------- */
@@ -852,7 +1850,8 @@ App.openBarcodeScanner = function(targetInputId){
     inputStream: {
       type: "LiveStream",
       target: document.getElementById("scannerViewport"),
-      constraints: { facingMode: "environment" }
+      constraints: { facingMode: "environment", width: {ideal:1280}, height: {ideal:720} },
+      area: { top:"30%", right:"5%", left:"5%", bottom:"30%" }   // ສະແກນສະເພາະແຖບກາງ ຕົງກັບກອບ/ເສັ້ນແດງ
     },
     decoder: {
       readers: ["ean_reader","ean_8_reader","code_128_reader","code_39_reader","upc_reader","upc_e_reader"]
@@ -897,40 +1896,89 @@ App.closeBarcodeScanner = function(){
 let _cart = []; // [{itemIdx, name, unit, price, qty}]
 let _lastSale = null;
 
+function lineCost(c){
+  let cost = 0, ok = true;
+  c.uses.forEach(u=>{
+    const s = findStockById(u.itemId);
+    const cp = s ? (s.costPrice||0) : 0;
+    if(!(cp > 0)) ok = false;
+    cost += cp * u.per;
+  });
+  return {cost, ok};
+}
+
+function cartConsumed(){
+  const m = {};
+  _cart.forEach(c=>c.uses.forEach(u=>{ m[u.itemId] = (m[u.itemId]||0) + u.per*c.qty; }));
+  return m;
+}
+
 App.renderPosItemList = function(){
   const listEl = document.getElementById("posItemList");
   if(!listEl) return;
   const q = (document.getElementById("posSearch")?.value||"").trim().toLowerCase();
-  const items = state.stockItems
-    .map((s, idx)=>({s, idx}))
-    .filter(({s})=> s.qty > 0 && (!q || s.name.toLowerCase().includes(q) || (s.barcode||"").toLowerCase().includes(q)));
+  const consumed = cartConsumed();
+  const rows = [];
 
-  if(items.length === 0){
-    listEl.innerHTML = '<div style="font-size:12px;color:var(--text-faint);text-align:center;padding:10px 0;">ບໍ່ພົບສີນຄ້າ (ຫຼືສີນຄ້າໝົດ)</div>';
-    return;
-  }
-  listEl.innerHTML = items.map(({s, idx})=>{
-    const inCart = _cart.find(c=>c.itemIdx===idx);
-    const leftAfterCart = s.qty - (inCart?inCart.qty:0);
-    return `
+  state.stockItems.forEach(s=>{
+    if(s.qty <= 0) return;
+    if(q && !(s.name.toLowerCase().includes(q) || (s.barcode||"").toLowerCase().includes(q))) return;
+    const left = s.qty - (consumed[s.id]||0);
+    const p = packInfo(s);
+    const packPrice = p ? (s.packPrice>0 ? s.packPrice : (s.sellPrice||0)*p.size) : 0;
+    const dis = (cond)=> cond ? "disabled style='opacity:.4;'" : "";
+    rows.push(`
       <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--panel-2); border-radius:9px; padding:8px 10px;">
         <div style="min-width:0;">
           <div style="font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeAttr(s.name)}</div>
-          <div style="font-size:11px; color:var(--text-faint);">${fmtKip(s.sellPrice||0)} · ເຫຼືອ ${leftAfterCart} ${escapeAttr(s.unit||"")}</div>
+          <div style="font-size:11px; color:var(--text-faint);">${fmtKip(s.sellPrice||0)}${p?` · ${fmtKip(packPrice)}/${escapeAttr(p.unit)}`:""} · ເຫຼືອ ${left} ${escapeAttr(s.unit||"")}</div>
         </div>
-        <button class="btn btn-primary btn-sm" ${leftAfterCart<=0?"disabled style='opacity:.4;'":""} onclick="App.addToCart(${idx})">+ ເພີ່ມ</button>
-      </div>`;
-  }).join("");
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          <button class="btn btn-primary btn-sm" ${dis(left<1)} onclick="App.addToCart('item','${s.id}',0)">+ ${escapeAttr(p ? (s.unit||"ຍ່ອຍ") : "ເພີ່ມ")}</button>
+          ${p?`<button class="btn btn-primary btn-sm" ${dis(left<p.size)} onclick="App.addToCart('item','${s.id}',1)">+ ${escapeAttr(p.unit)}</button>`:""}
+        </div>
+      </div>`);
+  });
+
+  (state.recipes||[]).forEach(r=>{
+    if(q && !r.name.toLowerCase().includes(q)) return;
+    const uses = recipeUses(r);
+    if(usesMaxPortions(uses, null) <= 0) return;
+    const left = usesMaxPortions(uses, consumed);
+    rows.push(`
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--panel-2); border-radius:9px; padding:8px 10px;">
+        <div style="min-width:0;">
+          <div style="font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🍹 ${escapeAttr(r.name)}</div>
+          <div style="font-size:11px; color:var(--text-faint);">${fmtKip(r.price||0)} · ຂາຍໄດ້ອີກ ${left}</div>
+        </div>
+        <button class="btn btn-primary btn-sm" ${left<1?"disabled style='opacity:.4;'":""} onclick="App.addToCart('recipe','${r.id}',0)">+ ເພີ່ມ</button>
+      </div>`);
+  });
+
+  listEl.innerHTML = rows.length ? rows.join("") : '<div style="font-size:12px;color:var(--text-faint);text-align:center;padding:10px 0;">ບໍ່ພົບສີນຄ້າ (ຫຼືສີນຄ້າໝົດ)</div>';
 };
 
-App.addToCart = function(idx){
-  const s = state.stockItems[idx];
-  if(!s) return;
-  let line = _cart.find(c=>c.itemIdx===idx);
-  const currentQty = line ? line.qty : 0;
-  if(currentQty + 1 > s.qty){ toast(`ສີນຄ້າ "${s.name}" ມີບໍ່ພໍ`); return; }
+App.addToCart = function(kind, id, pack){
+  let def;
+  if(kind === "recipe"){
+    const r = (state.recipes||[]).find(x=>x.id===id);
+    if(!r) return;
+    def = {key:"recipe:"+r.id, name:r.name, unitLabel:"", price:r.price||0, uses:recipeUses(r)};
+  } else {
+    const s = findStockById(id);
+    if(!s) return;
+    const p = packInfo(s);
+    if(pack && p){
+      def = {key:"item:"+s.id+":pack", name:s.name, unitLabel:p.unit,
+             price:(s.packPrice>0 ? s.packPrice : (s.sellPrice||0)*p.size), uses:[{itemId:s.id, per:p.size}]};
+    } else {
+      def = {key:"item:"+s.id+":1", name:s.name, unitLabel:(p ? (s.unit||"") : ""), price:s.sellPrice||0, uses:[{itemId:s.id, per:1}]};
+    }
+  }
+  if(usesMaxPortions(def.uses, cartConsumed()) < 1){ toast(`"${def.name}" ມີບໍ່ພໍ`); return; }
+  const line = _cart.find(c=>c.key===def.key);
   if(line){ line.qty += 1; }
-  else{ _cart.push({itemIdx:idx, name:s.name, unit:s.unit||"", price:s.sellPrice||0, qty:1}); }
+  else{ _cart.push(Object.assign(def, {qty:1})); }
   App.renderPosItemList();
   App.renderCart();
 };
@@ -938,11 +1986,13 @@ App.addToCart = function(idx){
 App.changeCartQty = function(cartIdx, delta){
   const line = _cart[cartIdx];
   if(!line) return;
-  const s = state.stockItems[line.itemIdx];
-  const newQty = line.qty + delta;
-  if(newQty <= 0){ _cart.splice(cartIdx,1); }
-  else if(s && newQty > s.qty){ toast(`ສີນຄ້າ "${line.name}" ມີບໍ່ພໍ`); return; }
-  else{ line.qty = newQty; }
+  if(delta > 0){
+    if(usesMaxPortions(line.uses, cartConsumed()) < 1){ toast(`"${line.name}" ມີບໍ່ພໍ`); return; }
+    line.qty += delta;
+  } else {
+    line.qty += delta;
+    if(line.qty <= 0) _cart.splice(cartIdx,1);
+  }
   App.renderPosItemList();
   App.renderCart();
 };
@@ -963,7 +2013,7 @@ App.renderCart = function(){
     if(confirmBtn){ confirmBtn.disabled = false; confirmBtn.style.opacity = "1"; }
     cartEl.innerHTML = _cart.map((c, cIdx)=>`
       <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-        <div style="min-width:0; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeAttr(c.name)}</div>
+        <div style="min-width:0; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeAttr(c.name)}${c.unitLabel?` <span style="color:var(--text-faint); font-size:11px;">(${escapeAttr(c.unitLabel)})</span>`:""}</div>
         <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
           <button class="btn btn-ghost btn-sm" style="padding:4px 9px;" onclick="App.changeCartQty(${cIdx},-1)">−</button>
           <span style="min-width:20px; text-align:center; font-size:13px; font-weight:700;">${c.qty}</span>
@@ -1050,7 +2100,14 @@ App.resumeHeldBill = function(id){
   if(_cart.length > 0){
     if(!window.confirm("ກະຕ່າປັດຈຸບັນຈະຖືກແທນທີ່ດ້ວຍບິນຄ້າງນີ້, ດຳເນີນການຕໍ່ບໍ?")) return;
   }
-  _cart = JSON.parse(JSON.stringify(bills[bIdx].items));
+  _cart = JSON.parse(JSON.stringify(bills[bIdx].items)).map(c=>{
+    if(!c.uses && c.itemIdx!=null){   // ບິນຄ້າງຮູບແບບເກົ່າ
+      const s = state.stockItems[c.itemIdx];
+      if(!s) return null;
+      c.uses = [{itemId:s.id, per:1}]; c.key = "item:"+s.id+":1"; c.unitLabel = c.unitLabel||"";
+    }
+    return c;
+  }).filter(Boolean);
   bills.splice(bIdx,1);
   saveState();
   App.closeModal("heldBillsModal");
@@ -1068,9 +2125,10 @@ App.deleteHeldBill = function(id){
 /* ---- confirm sale + receipt ---- */
 App.confirmSale = function(){
   if(_cart.length === 0) return;
-  for(const c of _cart){
-    const s = state.stockItems[c.itemIdx];
-    if(!s || c.qty > s.qty){ toast(`ສີນຄ້າ "${c.name}" ມີບໍ່ພໍ — ກະລຸນາກວດຄືນ`); return; }
+  const consumed = cartConsumed();
+  for(const id of Object.keys(consumed)){
+    const s = findStockById(id);
+    if(!s || consumed[id] > s.qty){ toast(`ສີນຄ້າ "${s?s.name:'?'}" ມີບໍ່ພໍ — ກະລຸນາກວດຄືນ`); return; }
   }
   const total = _cart.reduce((sum,c)=>sum+c.price*c.qty, 0);
   const cash  = Math.max(0, parseInt(document.getElementById("posCash")?.value)||0);
@@ -1079,10 +2137,15 @@ App.confirmSale = function(){
 
   const receiptItems = [];
   _cart.forEach(c=>{
-    const s = state.stockItems[c.itemIdx];
-    s.qty = Math.max(0, s.qty - c.qty);
-    state.stockLog.unshift({ts:Date.now(), itemId:s.id, itemName:s.name, change:-c.qty, reason:"ຂາຍ"});
-    receiptItems.push({name:c.name, qty:c.qty, unit:c.unit, price:c.price, subtotal:c.price*c.qty});
+    const isRecipe = c.key.indexOf("recipe:") === 0;
+    c.uses.forEach(u=>{
+      const s = findStockById(u.itemId);
+      const amt = u.per * c.qty;
+      s.qty = Math.max(0, s.qty - amt);
+      const reason = isRecipe ? `ຂາຍ: ${c.name}` : (c.unitLabel ? `ຂາຍ (${c.qty} ${c.unitLabel})` : "ຂາຍ");
+      state.stockLog.unshift({ts:Date.now(), itemId:s.id, itemName:s.name, change:-amt, reason});
+    });
+    receiptItems.push({name:c.name + (c.unitLabel?` (${c.unitLabel})`:""), qty:c.qty, unit:c.unitLabel||"", price:c.price, subtotal:c.price*c.qty, cost:lineCost(c).cost, costOk:lineCost(c).ok});
   });
   if(!Array.isArray(state.salesLog)) state.salesLog = [];
   const saleRecord = {id:uid(), ts:Date.now(), items:receiptItems, total, cash: cash||total, change};
@@ -1136,9 +2199,9 @@ App.printReceipt = function(sale){
 };
 
 App.exportStockCsv = function(){
-  const rows = [["ຊື່ສີນຄ້າ","Barcode/SKU","ໝວດໝູ່","ຈຳນວນ","ໜ່ວຍ","Stock ຂັ້ນຕ່ຳ","ເຊື່ອມເມນູ"]];
+  const rows = [["ຊື່ສີນຄ້າ","Barcode/SKU","ໝວດໝູ່","ຈຳນວນ","ໜ່ວຍ","ໜ່ວຍໃຫຍ່","1 ໜ່ວຍໃຫຍ່ = (ໜ່ວຍຍ່ອຍ)","Stock ຂັ້ນຕ່ຳ","ເຊື່ອມເມນູ"]];
   (state.stockItems||[]).forEach(s=>{
-    rows.push([s.name, s.barcode||"", s.category||"", s.qty, s.unit||"", s.minQty||0, s.linkedMenu||""]);
+    rows.push([s.name, s.barcode||"", s.category||"", s.qty, s.unit||"", s.packUnit||"", s.packSize||"", s.minQty||0, s.linkedMenu||""]);
   });
   const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob = new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8"});
@@ -1173,6 +2236,66 @@ function getFilteredSales(){
   return (state.salesLog||[]).filter(s=> s.ts >= fromTs && s.ts <= toTs);
 }
 
+function reportRange(){
+  const fromVal = document.getElementById("reportFrom")?.value;
+  const toVal   = document.getElementById("reportTo")?.value;
+  return {
+    fromTs: fromVal ? new Date(fromVal+"T00:00:00").getTime() : -Infinity,
+    toTs:   toVal   ? new Date(toVal+"T23:59:59").getTime()   : Infinity
+  };
+}
+
+function salesProfit(sales){
+  let rev = 0, cogs = 0, unknownLines = 0, unknownRev = 0;
+  sales.forEach(s=>s.items.forEach(i=>{
+    if(typeof i.cost === "number" && i.costOk !== false){ rev += i.subtotal; cogs += i.cost * i.qty; }
+    else { unknownLines++; unknownRev += i.subtotal; }
+  }));
+  return {rev, cogs, gross: rev - cogs, unknownLines, unknownRev};
+}
+
+function lossInRange(){
+  const {fromTs, toTs} = reportRange();
+  return (state.stockLog||[]).reduce((t,l)=> (l.lossType && l.ts>=fromTs && l.ts<=toTs) ? t + (l.lossValue||0) : t, 0);
+}
+
+App.renderBestSellers = function(sales){
+  const el = document.getElementById("bestSellers");
+  if(!el) return;
+  const sortKey = document.getElementById("bestSort")?.value || "qty";
+  const map = {};
+  sales.forEach(s=>s.items.forEach(i=>{
+    const m = map[i.name] || (map[i.name] = {name:i.name, qty:0, rev:0, profit:0, known:false});
+    m.qty += i.qty; m.rev += i.subtotal;
+    if(typeof i.cost === "number" && i.costOk !== false){ m.profit += i.subtotal - i.cost*i.qty; m.known = true; }
+  }));
+  const metric = r => sortKey==="rev" ? r.rev : sortKey==="profit" ? r.profit : r.qty;
+  const rows = Object.values(map).sort((a,b)=>metric(b)-metric(a)).slice(0,10);
+  if(rows.length === 0){
+    el.innerHTML = '<div style="font-size:12px;color:var(--text-faint);text-align:center;padding:8px 0;">ຍັງບໍ່ມີຂໍ້ມູນການຂາຍໃນຊ່ວງນີ້</div>';
+    return;
+  }
+  const max = Math.max(1, metric(rows[0]));
+  const medals = ["🥇","🥈","🥉"];
+  el.innerHTML = rows.map((r,idx)=>{
+    const w = Math.max(0, Math.min(100, Math.round(metric(r)/max*100)));
+    return `
+      <div style="margin-bottom:10px;">
+        <div style="display:flex; justify-content:space-between; gap:8px; font-size:13px; font-weight:700;">
+          <span style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${medals[idx]||(idx+1)+"."} ${escapeAttr(r.name)}</span>
+          <span style="flex-shrink:0;">× ${r.qty}</span>
+        </div>
+        <div style="height:6px; background:var(--panel-2); border-radius:4px; margin:5px 0; overflow:hidden;">
+          <div style="width:${w}%; height:100%; background:linear-gradient(90deg,#16b356,#3eeb84);"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-faint);">
+          <span>ລາຍຮັບ ${fmtKip(r.rev)}</span>
+          <span style="color:${r.known?(r.profit>=0?'var(--green)':'#fb7185'):'var(--text-faint)'};">${r.known?`ກຳໄລ ${fmtKip(r.profit)}`:"ກຳໄລ —"}</span>
+        </div>
+      </div>`;
+  }).join("");
+};
+
 App.renderSalesReport = function(){
   const sales = getFilteredSales();
   const summaryEl = document.getElementById("reportSummary");
@@ -1180,28 +2303,37 @@ App.renderSalesReport = function(){
   const emptyEl = document.getElementById("reportEmpty");
   if(!listEl) return;
 
+  App.renderBestSellers(sales);
+
   const totalRevenue = sales.reduce((s,x)=>s+x.total,0);
   const totalItems = sales.reduce((s,x)=>s+x.items.reduce((a,i)=>a+i.qty,0),0);
 
   if(summaryEl){
     if(sales.length>0){
+      const pr = salesProfit(sales);
+      const loss = lossInRange();
+      const margin = pr.rev > 0 ? Math.round(pr.gross / pr.rev * 100) : null;
+      const box = (label, val, color)=>`
+        <div style="background:var(--panel-2);border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-size:11px;color:var(--text-faint);">${label}</div>
+          <div style="font-size:14px;font-weight:700;color:${color};margin-top:4px;">${val}</div>
+        </div>`;
       summaryEl.style.display = "block";
       summaryEl.innerHTML = `
         <div class="card" style="margin-bottom:12px;">
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-            <div style="background:var(--panel-2);border-radius:10px;padding:10px;text-align:center;">
-              <div style="font-size:11px;color:var(--text-faint);">💰 ຍອດຂາຍລວມ</div>
-              <div style="font-size:14px;font-weight:700;color:var(--green);margin-top:4px;">${fmtKip(totalRevenue)}</div>
-            </div>
-            <div style="background:var(--panel-2);border-radius:10px;padding:10px;text-align:center;">
-              <div style="font-size:11px;color:var(--text-faint);">🧾 ຈຳນວນບິນ</div>
-              <div style="font-size:14px;font-weight:700;color:var(--text);margin-top:4px;">${sales.length}</div>
-            </div>
-            <div style="background:var(--panel-2);border-radius:10px;padding:10px;text-align:center;">
-              <div style="font-size:11px;color:var(--text-faint);">📦 ຈຳນວນສີນຄ້າຂາຍ</div>
-              <div style="font-size:14px;font-weight:700;color:var(--amber);margin-top:4px;">${totalItems}</div>
-            </div>
+            ${box("💰 ຍອດຂາຍລວມ", fmtKip(totalRevenue), "var(--green)")}
+            ${box("🧾 ຈຳນວນບິນ", sales.length, "var(--text)")}
+            ${box("📦 ຈຳນວນສີນຄ້າຂາຍ", totalItems, "var(--amber)")}
           </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;">
+            ${box("💹 ກຳໄລຂັ້ນຕົ້ນ", pr.rev>0 ? fmtKip(pr.gross) : "—", pr.gross>=0?"var(--green)":"#fb7185")}
+            ${box("📈 Margin", margin!==null ? margin+"%" : "—", "var(--amber)")}
+            ${box("📉 ເສຍຫາຍ", fmtKip(loss), loss>0?"#fb7185":"var(--text-faint)")}
+          </div>
+          ${loss>0 && pr.rev>0 ? `<div style="font-size:12px;color:var(--text-dim);margin-top:8px;">ກຳໄລຫຼັງຫັກເສຍຫາຍ: <b style="color:${pr.gross-loss>=0?'var(--green)':'#fb7185'};">${fmtKip(pr.gross-loss)}</b></div>` : ""}
+          ${pr.unknownLines>0 ? `<div style="font-size:11px;color:var(--amber);margin-top:8px;">⚠ ${pr.unknownLines} ລາຍການ (${fmtKip(pr.unknownRev)}) ບໍ່ມີຕົ້ນທຶນ (ບິນເກົ່າ ຫຼື ບໍ່ໄດ້ໃສ່ຕົ້ນທຶນສີນຄ້າ) — ບໍ່ລວມໃນກຳໄລ</div>` : ""}
+          <div style="font-size:10px;color:var(--text-faint);margin-top:6px;">ກຳໄລຂັ້ນຕົ້ນ = ລາຍຮັບ − ຕົ້ນທຶນສີນຄ້າທີ່ຂາຍ (ຕົ້ນທຶນ ຕອນຂາຍ)</div>
         </div>`;
     } else {
       summaryEl.style.display = "none";
@@ -1230,10 +2362,11 @@ App.renderSalesReport = function(){
 
 App.exportSalesCsv = function(){
   const sales = getFilteredSales();
-  const rows = [["ວັນທີ-ເວລາ","ລາຍການ","ລວມ","ຮັບເງິນ","ທອນ"]];
+  const rows = [["ວັນທີ-ເວລາ","ລາຍການ","ລວມ","ຮັບເງິນ","ທອນ","ຕົ້ນທຶນ (ທີ່ຮູ້)","ກຳໄລຂັ້ນຕົ້ນ (ທີ່ຮູ້)"]];
   sales.forEach(s=>{
     const itemsSummary = s.items.map(i=>`${i.name} x${i.qty}`).join("; ");
-    rows.push([fmtDateTime(new Date(s.ts)), itemsSummary, s.total, s.cash||"", s.change||""]);
+    const pr = salesProfit([s]);
+    rows.push([fmtDateTime(new Date(s.ts)), itemsSummary, s.total, s.cash||"", s.change||"", pr.rev>0?pr.cogs:"", pr.rev>0?pr.gross:""]);
   });
   const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob = new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8"});
@@ -1313,6 +2446,10 @@ function mergeRemoteIntoLocal(remoteData){
   if(!Array.isArray(merged.menuItems))  merged.menuItems  = [];
   if(!Array.isArray(merged.salesLog))   merged.salesLog   = [];
   if(!Array.isArray(merged.heldBills))  merged.heldBills  = [];
+  if(!Array.isArray(merged.recipes))    merged.recipes    = [];
+  if(!Array.isArray(merged.audits))     merged.audits     = [];
+  if(!Array.isArray(merged.suppliers))  merged.suppliers  = [];
+  if(!Array.isArray(merged.grns))       merged.grns       = [];
   return merged;
 }
 
@@ -1341,7 +2478,7 @@ function subscribeRealtime(){
 
 // ບັນທຶກ local ທັນທີ ແລະ ສົ່ງ Firebase ແບບພື້ນຫຼັງ (ບໍ່ລໍຖ້າ, ບໍ່ມີວັນເຮັດໃຫ້ໜ້ານີ້ຄ້າງ)
 function saveState(){
-  persistLocal(); // ບັນທຶກ local ທັນທີສະເໝີ — ໜ້ານີ້ໃຊ້ໄດ້ແມ່ນວ່າອອບໄລນ໌
+  persistLocal(); try{ checkLowStockAlerts(); }catch(e){ console.warn("alert check", e); } // ບັນທຶກ local ທັນທີສະເໝີ — ໜ້ານີ້ໃຊ້ໄດ້ແມ່ນວ່າອອບໄລນ໌
   if(!_fbReady || !db){ setSyncStatus("offline"); return; }
   setSyncStatus("syncing");
   try{
